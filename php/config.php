@@ -47,7 +47,7 @@ function isLoggedIn() {
 
 function requireLogin() {
     if (!isLoggedIn()) {
-        header('Location: login.php');
+        header('Location: ' . BASE_URL . 'login.php');
         exit;
     }
 }
@@ -95,7 +95,26 @@ function logActivity($user_id, $action, $description = '', $ip_address = null) {
 }
 
 function formatDate($date, $format = 'Y-m-d H:i:s') {
-    return date($format, strtotime($date));
+    if (!$date) {
+        return '';
+    }
+    
+    $timestamp = strtotime($date);
+    if ($timestamp === false) {
+        return $date; // Return original if parsing fails
+    }
+    
+    // Handle specific formats
+    switch ($format) {
+        case 'DD/MM/YYYY':
+            return date('d/m/Y', $timestamp);
+        case 'DD/MM/YYYY HH:mm':
+            return date('d/m/Y H:i', $timestamp);
+        case 'YYYY-MM-DD':
+            return date('Y-m-d', $timestamp);
+        default:
+            return date($format, $timestamp);
+    }
 }
 
 function getUnreadNotificationCount($user_id) {

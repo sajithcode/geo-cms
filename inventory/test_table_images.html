@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Column Implementation Test</title>
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="../css/dashboard.css" />
+    <link rel="stylesheet" href="../css/inventory.css" />
+    <style>
+      body {
+        padding: 20px;
+        font-family: Arial, sans-serif;
+      }
+      .test-section {
+        margin: 30px 0;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+      }
+      .test-title {
+        color: #007bff;
+        margin-bottom: 15px;
+      }
+      .sample-image {
+        width: 60px;
+        height: 60px;
+        object-fit: cover;
+        border-radius: 8px;
+        border: 2px solid #e9ecef;
+      }
+      .feature-list {
+        background: #f8f9fa;
+        padding: 15px;
+        border-radius: 5px;
+        margin: 10px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>🖼️ Image Column Implementation Test</h1>
+
+    <div class="test-section">
+      <h2 class="test-title">✅ Implementation Summary</h2>
+      <div class="feature-list">
+        <h3>Updated Tables:</h3>
+        <ul>
+          <li>
+            <strong>Admin Dashboard - Inventory Items:</strong> Image column
+            added as first column
+          </li>
+          <li>
+            <strong>Student Dashboard - My Requests:</strong> Image column added
+            as first column
+          </li>
+          <li>
+            <strong>Staff Dashboard - Borrow Requests:</strong> Image column
+            added after Requester column
+          </li>
+          <li>
+            <strong>Admin Dashboard - Recent Activity:</strong> Images replace
+            status badges when available
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2 class="test-title">📋 New Table Structure</h2>
+      <h3>Admin Dashboard - Inventory Items</h3>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Item Name</th>
+            <th>Category</th>
+            <th>Total</th>
+            <th>Available</th>
+            <th>Borrowed</th>
+            <th>Maintenance</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="image-column">
+              <div class="item-image-container">
+                <img
+                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjBGMEYwIi8+CjxwYXRoIGQ9Ik0yMCAyMEg0MFY0MEgyMFYyMFoiIGZpbGw9IiNDQ0NDQ0MiLz4KPHN2Zz4K"
+                  alt="Sample Item"
+                  class="item-table-image clickable-image"
+                  onclick="alert('Image preview would open here')"
+                />
+              </div>
+            </td>
+            <td>
+              <div class="item-details">
+                <strong>Sample Laptop</strong>
+                <small class="text-muted">HP EliteBook with i7 processor</small>
+              </div>
+            </td>
+            <td>Electronics</td>
+            <td>10</td>
+            <td><span class="quantity-badge available">8</span></td>
+            <td>2</td>
+            <td>0</td>
+            <td>
+              <span class="status-indicator status-good">80% Available</span>
+            </td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary">Edit</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Student Dashboard - My Requests</h3>
+      <table class="table">
+        <thead>
+          <tr>
+            <th>Image</th>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Reason</th>
+            <th>Borrow Period</th>
+            <th>Request Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="image-column">
+              <div class="item-image-container">
+                <img
+                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjBGMEYwIi8+CjxwYXRoIGQ9Ik0yMCAyMEg0MFY0MEgyMFYyMFoiIGZpbGw9IiNDQ0NDQ0MiLz4KPHN2Zz4K"
+                  alt="Sample Projector"
+                  class="item-table-image clickable-image"
+                  onclick="alert('Image preview would open here')"
+                />
+              </div>
+            </td>
+            <td>
+              <div class="item-info">
+                <strong>Epson Projector</strong>
+                <small class="text-muted">3LCD WXGA Projector</small>
+              </div>
+            </td>
+            <td>1</td>
+            <td>Class presentation</td>
+            <td>
+              <div class="date-range">
+                <strong>From:</strong> 15/10/2025<br />
+                <strong>To:</strong> 17/10/2025
+              </div>
+            </td>
+            <td>12/10/2025 14:30</td>
+            <td><span class="badge badge-warning">Pending</span></td>
+            <td>
+              <button class="btn btn-sm btn-outline-primary">View</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3>Staff Dashboard - Borrow Requests</h3>
+      <table class="table table-hover">
+        <thead>
+          <tr>
+            <th>Requester</th>
+            <th>Image</th>
+            <th>Item</th>
+            <th>Quantity</th>
+            <th>Reason</th>
+            <th>Borrow Period</th>
+            <th>Request Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>
+              <div class="requester-info">
+                <strong>John Doe</strong>
+                <small class="text-muted">STU001</small>
+              </div>
+            </td>
+            <td class="image-column">
+              <div class="item-image-container">
+                <img
+                  src="data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHZpZXdCb3g9IjAgMCA2MCA2MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjYwIiBoZWlnaHQ9IjYwIiBmaWxsPSIjRjBGMEYwIi8+CjxwYXRoIGQ9Ik0yMCAyMEg0MFY0MEgyMFYyMFoiIGZpbGw9IiNDQ0NDQ0MiLz4KPHN2Zz4K"
+                  alt="Sample Camera"
+                  class="item-table-image clickable-image"
+                  onclick="alert('Image preview would open here')"
+                />
+              </div>
+            </td>
+            <td>
+              <div class="item-info">
+                <strong>Canon DSLR Camera</strong>
+                <small class="text-muted">EOS 2000D with 18-55mm lens</small>
+              </div>
+            </td>
+            <td>1</td>
+            <td>Photography assignment</td>
+            <td>
+              <div class="date-range">
+                <strong>From:</strong> 20/10/2025<br />
+                <strong>To:</strong> 25/10/2025
+              </div>
+            </td>
+            <td>12/10/2025 09:15</td>
+            <td><span class="badge badge-warning">Pending</span></td>
+            <td>
+              <button class="btn btn-sm btn-success">Approve</button>
+              <button class="btn btn-sm btn-danger">Reject</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="test-section">
+      <h2 class="test-title">🔍 Features Implemented</h2>
+      <div class="feature-list">
+        <ul>
+          <li>
+            ✅ <strong>Dedicated Image Column:</strong> 60x60px thumbnails in
+            their own column
+          </li>
+          <li>
+            ✅ <strong>Click-to-Preview:</strong> Click any image to view
+            full-size modal
+          </li>
+          <li>
+            ✅ <strong>Hover Effects:</strong> Images zoom and highlight on
+            hover
+          </li>
+          <li>
+            ✅ <strong>Fallback Display:</strong> Camera icon (📷) for items
+            without images
+          </li>
+          <li>
+            ✅ <strong>Error Handling:</strong> Graceful fallback for broken
+            images
+          </li>
+          <li>
+            ✅ <strong>Responsive Design:</strong> Works on desktop and mobile
+          </li>
+          <li>
+            ✅ <strong>Activity Feed Images:</strong> Recent activity shows item
+            images
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2 class="test-title">🧪 Test Navigation</h2>
+      <div style="display: flex; gap: 15px; flex-wrap: wrap">
+        <a href="admin-dashboard.php" class="btn btn-primary"
+          >Test Admin Dashboard</a
+        >
+        <a href="student-dashboard.php" class="btn btn-success"
+          >Test Student Dashboard</a
+        >
+        <a href="staff-dashboard.php" class="btn btn-info"
+          >Test Staff Dashboard</a
+        >
+        <a href="php/test_image_functionality.php" class="btn btn-secondary"
+          >Test Image Upload</a
+        >
+      </div>
+    </div>
+
+    <div class="test-section">
+      <h2 class="test-title">📝 Technical Notes</h2>
+      <div class="feature-list">
+        <p><strong>SQL Queries Updated:</strong></p>
+        <ul>
+          <li>
+            Student dashboard: Added <code>ii.image_path</code> to requests
+            query
+          </li>
+          <li>
+            Staff dashboard: Added <code>ii.image_path</code> to requests query
+          </li>
+          <li>
+            Admin dashboard: Added <code>ii.image_path</code> to recent activity
+            query
+          </li>
+        </ul>
+
+        <p><strong>Table Structure Changes:</strong></p>
+        <ul>
+          <li>Added "Image" column headers</li>
+          <li>Updated colspan values for empty states</li>
+          <li>Added image display cells with click handlers</li>
+        </ul>
+
+        <p><strong>CSS Classes Added:</strong></p>
+        <ul>
+          <li><code>.image-column</code> - Column sizing and alignment</li>
+          <li>
+            <code>.item-table-image</code> - Thumbnail styling with hover
+            effects
+          </li>
+          <li>
+            <code>.activity-item-image</code> - Circular images for activity
+            feed
+          </li>
+          <li>
+            <code>.clickable-image</code> - Cursor pointer for interactive
+            images
+          </li>
+        </ul>
+      </div>
+    </div>
+
+    <script>
+      // Simple demo of image preview functionality
+      document.querySelectorAll(".clickable-image").forEach((img) => {
+        img.addEventListener("click", function () {
+          const modal = document.createElement("div");
+          modal.style.cssText = `
+                    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+                    background: rgba(0,0,0,0.8); display: flex; align-items: center;
+                    justify-content: center; z-index: 1000; cursor: pointer;
+                `;
+
+          const largeImg = document.createElement("img");
+          largeImg.src = this.src;
+          largeImg.style.cssText = `
+                    max-width: 90%; max-height: 90%; border-radius: 8px;
+                    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+                `;
+
+          modal.appendChild(largeImg);
+          document.body.appendChild(modal);
+
+          modal.addEventListener("click", () => {
+            document.body.removeChild(modal);
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

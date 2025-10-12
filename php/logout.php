@@ -3,7 +3,7 @@ require_once 'config.php';
 
 // Check if user is logged in
 if (!isLoggedIn()) {
-    redirectTo('login.php');
+    redirectTo(BASE_URL . 'login.php');
 }
 
 // Log logout activity
@@ -39,5 +39,5 @@ session_start();
 $_SESSION['success'] = 'You have been logged out successfully.';
 
 // Redirect to login page
-redirectTo('login.php');
+redirectTo(BASE_URL . 'login.php');
 ?>
