@@ -2,6 +2,7 @@
 
 document.addEventListener("DOMContentLoaded", function () {
   initializeInventory();
+  initializeImageHandling();
 });
 
 // Custom alert function for inventory dashboard
@@ -81,6 +82,9 @@ function initializeInventory() {
   // Initialize item selection handlers
   initializeItemSelection();
 
+  // Initialize date range handlers
+  initializeDateRangeHandlers();
+
   // Initialize table sorting
   initializeTableSorting();
 
@@ -159,6 +163,79 @@ function initializeItemSelection() {
   }
 }
 
+function initializeDateRangeHandlers() {
+  const startDateInput = document.getElementById("borrow_start_date");
+  const endDateInput = document.getElementById("borrow_end_date");
+
+  if (startDateInput && endDateInput) {
+    startDateInput.addEventListener("change", function () {
+      validateDateRange();
+      updateEndDateMinimum();
+    });
+
+    endDateInput.addEventListener("change", function () {
+      validateDateRange();
+    });
+  }
+}
+
+function updateEndDateMinimum() {
+  const startDateInput = document.getElementById("borrow_start_date");
+  const endDateInput = document.getElementById("borrow_end_date");
+
+  if (startDateInput.value) {
+    const startDate = new Date(startDateInput.value);
+    const nextDay = new Date(startDate);
+    nextDay.setDate(startDate.getDate() + 1);
+
+    const minEndDate = nextDay.toISOString().split("T")[0];
+    endDateInput.min = minEndDate;
+
+    // Clear end date if it's before the new minimum
+    if (endDateInput.value && endDateInput.value <= startDateInput.value) {
+      endDateInput.value = "";
+    }
+  }
+}
+
+function validateDateRange() {
+  const startDateInput = document.getElementById("borrow_start_date");
+  const endDateInput = document.getElementById("borrow_end_date");
+
+  if (startDateInput.value && endDateInput.value) {
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(endDateInput.value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      showAlert("Start date cannot be in the past", "warning");
+      startDateInput.value = "";
+      return false;
+    }
+
+    if (endDate <= startDate) {
+      showAlert("End date must be after start date", "warning");
+      endDateInput.value = "";
+      return false;
+    }
+
+    // Check for maximum borrow period (optional - set to 30 days)
+    const daysDifference = Math.ceil(
+      (endDate - startDate) / (1000 * 60 * 60 * 24)
+    );
+    if (daysDifference > 30) {
+      showAlert("Borrow period cannot exceed 30 days", "warning");
+      endDateInput.value = "";
+      return false;
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
 function initializeTableSorting() {
   const tables = document.querySelectorAll(".table");
   tables.forEach((table) => {
@@ -214,7 +291,8 @@ function handleBorrowRequest(e) {
 function validateBorrowRequest(form) {
   const itemId = form.querySelector("#item_id").value;
   const quantity = parseInt(form.querySelector("#quantity").value);
-  const expectedReturnDate = form.querySelector("#expected_return_date").value;
+  const startDate = form.querySelector("#borrow_start_date").value;
+  const endDate = form.querySelector("#borrow_end_date").value;
   const reason = form.querySelector("#reason").value.trim();
 
   if (!itemId) {
@@ -235,17 +313,12 @@ function validateBorrowRequest(form) {
     return false;
   }
 
-  if (!expectedReturnDate) {
-    showAlert("Please select an expected return date", "danger");
+  if (!startDate || !endDate) {
+    showAlert("Please select both start and end dates", "danger");
     return false;
   }
 
-  const returnDate = new Date(expectedReturnDate);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  if (returnDate <= today) {
-    showAlert("Return date must be in the future", "danger");
+  if (!validateDateRange()) {
     return false;
   }
 
@@ -484,12 +557,21 @@ function displayRequestDetails(request) {
                         <span>${request.quantity}</span>
                     </div>
                     <div class="detail-item">
-                        <label>Expected Return:</label>
-                        <span>${
-                          request.expected_return_date
-                            ? formatDate(request.expected_return_date)
-                            : "Not specified"
-                        }</span>
+                        <label>Borrow Period:</label>
+                        <span>
+                            ${
+                              request.borrow_start_date &&
+                              request.borrow_end_date
+                                ? `${formatDate(
+                                    request.borrow_start_date
+                                  )} to ${formatDate(request.borrow_end_date)}`
+                                : request.expected_return_date
+                                ? `Expected Return: ${formatDate(
+                                    request.expected_return_date
+                                  )}`
+                                : "Not specified"
+                            }
+                        </span>
                     </div>
                 </div>
             </div>
@@ -645,6 +727,34 @@ function populateItemForm(item) {
     item.quantity_borrowed;
   document.getElementById("item-quantity-maintenance").value =
     item.quantity_maintenance;
+
+  // Handle current image
+  const currentImagePreview = document.getElementById("current-image-preview");
+  const currentImage = document.getElementById("current-image");
+  const newImagePreview = document.getElementById("new-image-preview");
+  const imageInput = document.getElementById("item-image");
+
+  // Clear new image preview
+  if (newImagePreview) {
+    newImagePreview.style.display = "none";
+  }
+  if (imageInput) {
+    imageInput.value = "";
+    imageInput.removeAttribute("data-remove-current");
+  }
+
+  // Show current image if exists
+  if (item.image_path && currentImagePreview && currentImage) {
+    currentImage.src = "../" + item.image_path;
+    currentImage.onerror = function () {
+      currentImagePreview.style.display = "none";
+    };
+    currentImage.onload = function () {
+      currentImagePreview.style.display = "block";
+    };
+  } else if (currentImagePreview) {
+    currentImagePreview.style.display = "none";
+  }
 }
 
 function handleItemSave(e) {
@@ -861,6 +971,28 @@ document.addEventListener("click", function (e) {
         // Don't reset approval form automatically
         form.reset();
       }
+
+      // Clear image previews for item form
+      if (form.id === "item-form") {
+        const currentImagePreview = document.getElementById(
+          "current-image-preview"
+        );
+        const newImagePreview = document.getElementById("new-image-preview");
+        if (currentImagePreview) {
+          currentImagePreview.style.display = "none";
+        }
+        if (newImagePreview) {
+          newImagePreview.style.display = "none";
+        }
+
+        // Remove image removal flags
+        const removeImageInput = form.querySelector(
+          'input[name="remove_current_image"]'
+        );
+        if (removeImageInput) {
+          removeImageInput.remove();
+        }
+      }
     });
 
     // Reset item modal title
@@ -874,5 +1006,239 @@ document.addEventListener("click", function (e) {
     if (itemIdInput) {
       itemIdInput.value = "";
     }
+
+    // Clear image previews when opening modal for new item
+    const currentImagePreview = document.getElementById(
+      "current-image-preview"
+    );
+    const newImagePreview = document.getElementById("new-image-preview");
+    if (currentImagePreview) {
+      currentImagePreview.style.display = "none";
+    }
+    if (newImagePreview) {
+      newImagePreview.style.display = "none";
+    }
   }
 });
+
+// Image handling functions
+function initializeImageHandling() {
+  // Image preview for item form
+  const imageInput = document.getElementById("item-image");
+  if (imageInput) {
+    imageInput.addEventListener("change", handleImagePreview);
+  }
+
+  // Item selection change for student dashboard
+  const itemSelect = document.getElementById("item_id");
+  if (itemSelect) {
+    itemSelect.addEventListener("change", handleItemSelection);
+  }
+}
+
+function handleImagePreview(event) {
+  const file = event.target.files[0];
+  const previewContainer = document.getElementById("new-image-preview");
+  const previewImage = document.getElementById("preview-image");
+
+  if (file && previewContainer && previewImage) {
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      showAlert("Please select a valid image file", "danger");
+      event.target.value = "";
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      showAlert("Image size too large. Maximum 5MB allowed", "danger");
+      event.target.value = "";
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = function (e) {
+      previewImage.src = e.target.result;
+      previewContainer.style.display = "block";
+    };
+    reader.readAsDataURL(file);
+  }
+}
+
+function removeNewImage() {
+  const imageInput = document.getElementById("item-image");
+  const previewContainer = document.getElementById("new-image-preview");
+
+  if (imageInput) {
+    imageInput.value = "";
+  }
+  if (previewContainer) {
+    previewContainer.style.display = "none";
+  }
+}
+
+function removeCurrentImage() {
+  const currentImageContainer = document.getElementById(
+    "current-image-preview"
+  );
+
+  if (currentImageContainer) {
+    currentImageContainer.style.display = "none";
+  }
+
+  // Add a hidden input to indicate image should be removed
+  const form = document.getElementById("item-form");
+  if (form) {
+    // Remove existing hidden input if any
+    const existingInput = form.querySelector(
+      'input[name="remove_current_image"]'
+    );
+    if (existingInput) {
+      existingInput.remove();
+    }
+
+    // Add hidden input to indicate removal
+    const hiddenInput = document.createElement("input");
+    hiddenInput.type = "hidden";
+    hiddenInput.name = "remove_current_image";
+    hiddenInput.value = "true";
+    form.appendChild(hiddenInput);
+  }
+}
+
+function handleItemSelection(event) {
+  const selectedOption = event.target.selectedOptions[0];
+  const itemDetails = document.getElementById("item-details");
+  const itemDescription = document.getElementById("item-description");
+  const availableQuantity = document.getElementById("available-quantity");
+  const maxQuantity = document.getElementById("max-quantity");
+  const quantityInput = document.getElementById("quantity");
+  const imagePreview = document.getElementById("item-image-preview");
+  const itemImage = document.getElementById("selected-item-image");
+
+  if (selectedOption && selectedOption.value) {
+    const available = selectedOption.getAttribute("data-available");
+    const description = selectedOption.getAttribute("data-description");
+    const imagePath = selectedOption.getAttribute("data-image");
+
+    // Show item details
+    if (itemDetails) {
+      itemDetails.style.display = "block";
+    }
+
+    // Update description
+    if (itemDescription) {
+      itemDescription.textContent = description || "No description available";
+    }
+
+    // Update available quantity
+    if (availableQuantity) {
+      availableQuantity.textContent = available;
+    }
+
+    if (maxQuantity) {
+      maxQuantity.textContent = available;
+    }
+
+    // Update quantity input
+    if (quantityInput) {
+      quantityInput.max = available;
+      quantityInput.value = Math.min(1, available);
+    }
+
+    // Show item image if available
+    if (imagePreview && itemImage && imagePath) {
+      itemImage.src = "../" + imagePath;
+      itemImage.onerror = function () {
+        imagePreview.style.display = "none";
+      };
+      itemImage.onload = function () {
+        imagePreview.style.display = "block";
+        // Make image clickable for preview
+        itemImage.style.cursor = "pointer";
+        itemImage.onclick = function () {
+          showImagePreview(
+            "../" + imagePath,
+            selectedOption.textContent.split(" (")[0]
+          );
+        };
+      };
+    } else if (imagePreview) {
+      imagePreview.style.display = "none";
+    }
+  } else {
+    // Hide item details
+    if (itemDetails) {
+      itemDetails.style.display = "none";
+    }
+    if (imagePreview) {
+      imagePreview.style.display = "none";
+    }
+  }
+}
+
+// Image preview functionality
+function showImagePreview(imageSrc, itemName) {
+  const modal = document.getElementById("image-preview-modal");
+  const title = document.getElementById("image-preview-title");
+  const image = document.getElementById("preview-modal-image");
+
+  if (modal && title && image) {
+    title.textContent = itemName || "Item Image";
+    image.src = imageSrc;
+    image.alt = itemName || "Item image";
+
+    // Handle image load error
+    image.onerror = function () {
+      this.alt = "Image failed to load";
+      this.style.opacity = "0.5";
+    };
+
+    // Reset image properties
+    image.style.opacity = "1";
+
+    showModal("image-preview-modal");
+  }
+}
+
+// Initialize image handling
+function initializeImageHandling() {
+  // Add image preview functionality to existing images
+  document.querySelectorAll(".clickable-image").forEach((img) => {
+    img.style.cursor = "pointer";
+  });
+
+  // Image upload preview
+  const imageInput = document.getElementById("item-image");
+  if (imageInput) {
+    imageInput.addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (file && file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+          const previewContainer = document.getElementById("new-image-preview");
+          const previewImage = document.getElementById("preview-image");
+
+          if (previewContainer && previewImage) {
+            previewImage.src = e.target.result;
+            previewContainer.style.display = "block";
+          }
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+  }
+}
+
+// Remove new image preview
+function removeNewImage() {
+  const newImagePreview = document.getElementById("new-image-preview");
+  const imageInput = document.getElementById("item-image");
+
+  if (newImagePreview) {
+    newImagePreview.style.display = "none";
+  }
+  if (imageInput) {
+    imageInput.value = "";
+  }
+}

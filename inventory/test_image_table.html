@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Image Feature Test - Inventory</title>
+    <link rel="stylesheet" href="../css/style.css" />
+    <link rel="stylesheet" href="../css/dashboard.css" />
+    <link rel="stylesheet" href="../css/inventory.css" />
+    <style>
+      .test-container {
+        max-width: 1200px;
+        margin: 20px auto;
+        padding: 20px;
+      }
+      .test-section {
+        margin-bottom: 40px;
+        padding: 20px;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+      }
+      .test-table {
+        width: 100%;
+        border-collapse: collapse;
+      }
+      .test-table th,
+      .test-table td {
+        padding: 12px;
+        border: 1px solid #dee2e6;
+        text-align: left;
+      }
+      .test-table th {
+        background-color: #f8f9fa;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="test-container">
+      <h1>🖼️ Inventory Image Feature Test</h1>
+
+      <div class="test-section">
+        <h2>✅ Features Implemented</h2>
+        <ul>
+          <li>
+            ✅ Database column <code>image_path</code> added to inventory_items
+          </li>
+          <li>
+            ✅ Secure upload directory created: <code>uploads/inventory/</code>
+          </li>
+          <li>✅ Image upload functionality in admin dashboard</li>
+          <li>✅ Image column added to inventory table</li>
+          <li>✅ Click-to-preview functionality</li>
+          <li>✅ Image display in student borrowing process</li>
+          <li>✅ CSS styling for image components</li>
+          <li>✅ JavaScript functions for image handling</li>
+        </ul>
+      </div>
+
+      <div class="test-section">
+        <h2>📋 Test Image Table Layout</h2>
+        <p>
+          This shows how the new inventory table will look with the image
+          column:
+        </p>
+
+        <table class="test-table">
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Item Name</th>
+              <th>Category</th>
+              <th>Total</th>
+              <th>Available</th>
+              <th>Borrowed</th>
+              <th>Maintenance</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="image-column">
+                <div class="item-image-container">
+                  <img
+                    src="../images/sample-laptop.jpg"
+                    alt="Sample Laptop"
+                    class="item-table-image clickable-image"
+                    onclick="showImagePreview('../images/sample-laptop.jpg', 'Sample Laptop')"
+                    onerror="this.parentElement.innerHTML='<span class=&quot;no-image&quot;>📷</span>'"
+                  />
+                </div>
+              </td>
+              <td>
+                <div class="item-details">
+                  <strong>HP EliteBook Laptop</strong>
+                  <small class="text-muted"
+                    >High-performance laptop for development</small
+                  >
+                </div>
+              </td>
+              <td>Electronics</td>
+              <td>10</td>
+              <td><span class="quantity-badge available">8</span></td>
+              <td>2</td>
+              <td>0</td>
+              <td>
+                <span class="status-indicator status-good">80% Available</span>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                <button class="btn btn-sm btn-outline-danger">Delete</button>
+              </td>
+            </tr>
+            <tr>
+              <td class="image-column">
+                <span class="no-image">📷</span>
+              </td>
+              <td>
+                <div class="item-details">
+                  <strong>Digital Microscope</strong>
+                  <small class="text-muted"
+                    >Laboratory equipment for research</small
+                  >
+                </div>
+              </td>
+              <td>Lab Equipment</td>
+              <td>5</td>
+              <td><span class="quantity-badge available">4</span></td>
+              <td>1</td>
+              <td>0</td>
+              <td>
+                <span class="status-indicator status-good">80% Available</span>
+              </td>
+              <td>
+                <button class="btn btn-sm btn-outline-primary">Edit</button>
+                <button class="btn btn-sm btn-outline-danger">Delete</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="test-section">
+        <h2>🎯 How to Use</h2>
+        <div class="row">
+          <div class="col-6">
+            <h4>For Admins:</h4>
+            <ol>
+              <li>Go to Admin Dashboard → Inventory Management</li>
+              <li>Click "Add Item" or edit existing item</li>
+              <li>Upload an image in the "Item Image" section</li>
+              <li>Save the item</li>
+              <li>Click the image in the table to see full preview</li>
+            </ol>
+          </div>
+          <div class="col-6">
+            <h4>For Students:</h4>
+            <ol>
+              <li>Go to Student Dashboard</li>
+              <li>Click "Request to Borrow"</li>
+              <li>Select an item from dropdown</li>
+              <li>View the item image in details section</li>
+              <li>Click the image for full preview</li>
+            </ol>
+          </div>
+        </div>
+      </div>
+
+      <div class="test-section">
+        <h2>🔗 Navigation</h2>
+        <div class="btn-group">
+          <a href="admin-dashboard.php" class="btn btn-primary"
+            >Admin Dashboard</a
+          >
+          <a href="student-dashboard.php" class="btn btn-secondary"
+            >Student Dashboard</a
+          >
+          <a href="test_image_functionality.php" class="btn btn-outline-info"
+            >Test Upload</a
+          >
+          <a href="../" class="btn btn-outline-secondary">Back to Main</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="image-preview-modal" class="modal" style="display: none">
+      <div class="modal-content modal-lg">
+        <div class="modal-header">
+          <h3 id="image-preview-title">Item Image</h3>
+          <button onclick="hideModal('image-preview-modal')">&times;</button>
+        </div>
+        <div class="modal-body text-center">
+          <img
+            id="preview-modal-image"
+            src=""
+            alt=""
+            class="preview-modal-image"
+          />
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-secondary"
+            onclick="hideModal('image-preview-modal')"
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script src="../js/script.js"></script>
+    <script>
+      // Test image preview function
+      function showImagePreview(imageSrc, itemName) {
+        const modal = document.getElementById("image-preview-modal");
+        const title = document.getElementById("image-preview-title");
+        const image = document.getElementById("preview-modal-image");
+
+        if (modal && title && image) {
+          title.textContent = itemName || "Item Image";
+          image.src = imageSrc;
+          image.alt = itemName || "Item image";
+
+          // Handle image load error
+          image.onerror = function () {
+            this.alt = "Image failed to load";
+            this.style.opacity = "0.5";
+          };
+
+          // Reset image properties
+          image.style.opacity = "1";
+
+          showModal("image-preview-modal");
+        }
+      }
+    </script>
+  </body>
+</html>

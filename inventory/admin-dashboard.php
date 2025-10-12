@@ -45,7 +45,7 @@ try {
     
     // Recent activity
     $stmt = $pdo->prepare("
-        SELECT br.*, ii.name as item_name, u.name as requester_name
+        SELECT br.*, ii.name as item_name, ii.image_path, u.name as requester_name
         FROM borrow_requests br
         JOIN inventory_items ii ON br.item_id = ii.id
         JOIN users u ON br.user_id = u.id
@@ -237,6 +237,7 @@ try {
                         <table class="table table-hover" id="items-table">
                             <thead>
                                 <tr>
+                                    <th>Image</th>
                                     <th>Item Name</th>
                                     <th>Category</th>
                                     <th>Total</th>
@@ -250,7 +251,7 @@ try {
                             <tbody>
                                 <?php if (empty($inventory_items)): ?>
                                     <tr>
-                                        <td colspan="8" class="text-center">
+                                        <td colspan="9" class="text-center">
                                             <div class="empty-state">
                                                 <div class="empty-icon">📦</div>
                                                 <h3>No Items Found</h3>
@@ -262,8 +263,21 @@ try {
                                 <?php else: ?>
                                     <?php foreach ($inventory_items as $item): ?>
                                         <tr data-category="<?php echo $item['category_id']; ?>">
+                                            <td class="image-column">
+                                                <?php if ($item['image_path']): ?>
+                                                    <div class="item-image-container">
+                                                        <img src="../<?php echo htmlspecialchars($item['image_path']); ?>" 
+                                                             alt="<?php echo htmlspecialchars($item['name']); ?>"
+                                                             class="item-table-image clickable-image"
+                                                             onclick="showImagePreview('../<?php echo htmlspecialchars($item['image_path']); ?>', '<?php echo htmlspecialchars($item['name']); ?>')"
+                                                             onerror="this.parentElement.innerHTML='<span class=&quot;no-image&quot;>📷</span>'">
+                                                    </div>
+                                                <?php else: ?>
+                                                    <span class="no-image">📷</span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td>
-                                                <div class="item-info">
+                                                <div class="item-details">
                                                     <strong><?php echo htmlspecialchars($item['name']); ?></strong>
                                                     <?php if ($item['description']): ?>
                                                         <small class="text-muted"><?php echo htmlspecialchars($item['description']); ?></small>
@@ -329,9 +343,20 @@ try {
                             <?php foreach (array_slice($recent_requests, 0, 5) as $request): ?>
                                 <div class="activity-item">
                                     <div class="activity-icon">
-                                        <span class="badge badge-<?php echo getStatusBadgeClass($request['status']); ?>">
-                                            <?php echo strtoupper(substr($request['status'], 0, 1)); ?>
-                                        </span>
+                                        <?php if ($request['image_path']): ?>
+                                            <img src="../<?php echo htmlspecialchars($request['image_path']); ?>" 
+                                                 alt="<?php echo htmlspecialchars($request['item_name']); ?>"
+                                                 class="activity-item-image clickable-image"
+                                                 onclick="showImagePreview('../<?php echo htmlspecialchars($request['image_path']); ?>', '<?php echo htmlspecialchars($request['item_name']); ?>')"
+                                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
+                                            <span class="badge badge-<?php echo getStatusBadgeClass($request['status']); ?>" style="display: none;">
+                                                <?php echo strtoupper(substr($request['status'], 0, 1)); ?>
+                                            </span>
+                                        <?php else: ?>
+                                            <span class="badge badge-<?php echo getStatusBadgeClass($request['status']); ?>">
+                                                <?php echo strtoupper(substr($request['status'], 0, 1)); ?>
+                                            </span>
+                                        <?php endif; ?>
                                     </div>
                                     <div class="activity-content">
                                         <p>
@@ -360,7 +385,7 @@ try {
                 <h3 id="item-modal-title">Add New Item</h3>
                 <button onclick="hideModal('item-modal')">&times;</button>
             </div>
-            <form id="item-form">
+            <form id="item-form" enctype="multipart/form-data">
                 <div class="modal-body">
                     <input type="hidden" id="item-id" name="item_id">
                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
@@ -390,6 +415,33 @@ try {
                         <label for="item-description" class="form-label">Description</label>
                         <textarea id="item-description" name="description" class="form-control" rows="2"
                                   placeholder="Enter item description"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="item-image" class="form-label">Item Image</label>
+                        <div class="image-upload-container">
+                            <input type="file" id="item-image" name="item_image" class="form-control" 
+                                   accept="image/jpeg,image/png,image/gif,image/webp">
+                            <div class="image-upload-help">
+                                <small class="text-muted">Upload an image for this item (JPEG, PNG, GIF, WebP - Max 5MB)</small>
+                            </div>
+                            <div id="current-image-preview" class="current-image-preview" style="display: none;">
+                                <img id="current-image" src="" alt="Current item image">
+                                <div class="image-actions">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeCurrentImage()">
+                                        Remove Image
+                                    </button>
+                                </div>
+                            </div>
+                            <div id="new-image-preview" class="new-image-preview" style="display: none;">
+                                <img id="preview-image" src="" alt="Preview">
+                                <div class="image-actions">
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeNewImage()">
+                                        Remove
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="row">
@@ -459,6 +511,22 @@ try {
                     <button type="submit" class="btn btn-primary">Add Category</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="image-preview-modal" class="modal" style="display: none;">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="image-preview-title">Item Image</h3>
+                <button onclick="hideModal('image-preview-modal')">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="preview-modal-image" src="" alt="" class="preview-modal-image">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideModal('image-preview-modal')">Close</button>
+            </div>
         </div>
     </div>
 

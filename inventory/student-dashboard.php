@@ -16,7 +16,7 @@ if (!in_array($user_role, ['student', 'lecturer'])) {
 // Get user's borrow requests
 try {
     $stmt = $pdo->prepare("
-        SELECT br.*, ii.name as item_name, ii.description as item_description,
+        SELECT br.*, ii.name as item_name, ii.description as item_description, ii.image_path,
                u.name as approved_by_name
         FROM borrow_requests br
         JOIN inventory_items ii ON br.item_id = ii.id
@@ -153,10 +153,11 @@ try {
                         <table class="table" id="requests-table">
                             <thead>
                                 <tr>
+                                    <th>Image</th>
                                     <th>Item</th>
                                     <th>Quantity</th>
                                     <th>Reason</th>
-                                    <th>Expected Return</th>
+                                    <th>Borrow Period</th>
                                     <th>Request Date</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -165,7 +166,7 @@ try {
                             <tbody>
                                 <?php if (empty($my_requests)): ?>
                                     <tr>
-                                        <td colspan="7" class="text-center">
+                                        <td colspan="8" class="text-center">
                                             <div class="empty-state">
                                                 <div class="empty-icon">📦</div>
                                                 <h3>No Requests Yet</h3>
@@ -177,6 +178,19 @@ try {
                                 <?php else: ?>
                                     <?php foreach ($my_requests as $request): ?>
                                         <tr data-status="<?php echo $request['status']; ?>">
+                                            <td class="image-column">
+                                                <?php if ($request['image_path']): ?>
+                                                    <div class="item-image-container">
+                                                        <img src="../<?php echo htmlspecialchars($request['image_path']); ?>" 
+                                                             alt="<?php echo htmlspecialchars($request['item_name']); ?>"
+                                                             class="item-table-image clickable-image"
+                                                             onclick="showImagePreview('../<?php echo htmlspecialchars($request['image_path']); ?>', '<?php echo htmlspecialchars($request['item_name']); ?>')"
+                                                             onerror="this.parentElement.innerHTML='<span class=&quot;no-image&quot;>📷</span>'">
+                                                    </div>
+                                                <?php else: ?>
+                                                    <span class="no-image">📷</span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td>
                                                 <div class="item-info">
                                                     <strong><?php echo htmlspecialchars($request['item_name']); ?></strong>
@@ -187,7 +201,20 @@ try {
                                             </td>
                                             <td><?php echo $request['quantity']; ?></td>
                                             <td><?php echo htmlspecialchars($request['reason'] ?? '-'); ?></td>
-                                            <td><?php echo $request['expected_return_date'] ? formatDate($request['expected_return_date']) : '-'; ?></td>
+                                            <td>
+                                                <?php if ($request['borrow_start_date'] && $request['borrow_end_date']): ?>
+                                                    <div class="date-range">
+                                                        <strong>From:</strong> <?php echo formatDate($request['borrow_start_date'], 'DD/MM/YYYY'); ?><br>
+                                                        <strong>To:</strong> <?php echo formatDate($request['borrow_end_date'], 'DD/MM/YYYY'); ?>
+                                                    </div>
+                                                <?php elseif ($request['expected_return_date']): ?>
+                                                    <div class="date-range">
+                                                        <strong>Expected Return:</strong> <?php echo formatDate($request['expected_return_date'], 'DD/MM/YYYY'); ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    -
+                                                <?php endif; ?>
+                                            </td>
                                             <td><?php echo formatDate($request['request_date'], 'DD/MM/YYYY HH:mm'); ?></td>
                                             <td>
                                                 <span class="badge badge-<?php echo getStatusBadgeClass($request['status']); ?>">
@@ -235,7 +262,8 @@ try {
                             <?php foreach ($available_items as $item): ?>
                                 <option value="<?php echo $item['id']; ?>" 
                                         data-available="<?php echo $item['quantity_available']; ?>"
-                                        data-description="<?php echo htmlspecialchars($item['description']); ?>">
+                                        data-description="<?php echo htmlspecialchars($item['description']); ?>"
+                                        data-image="<?php echo htmlspecialchars($item['image_path'] ?? ''); ?>">
                                     <?php echo htmlspecialchars($item['name']); ?> 
                                     (Available: <?php echo $item['quantity_available']; ?>)
                                     <?php if ($item['category_name']): ?>
@@ -248,14 +276,25 @@ try {
 
                     <div class="item-details" id="item-details" style="display: none;">
                         <div class="alert alert-info">
-                            <strong>Item Description:</strong>
-                            <p id="item-description"></p>
-                            <strong>Available Quantity:</strong> <span id="available-quantity"></span>
+                            <div class="row">
+                                <div class="col-8">
+                                    <div class="item-info-text">
+                                        <strong>Item Description:</strong>
+                                        <p id="item-description"></p>
+                                        <strong>Available Quantity:</strong> <span id="available-quantity"></span>
+                                    </div>
+                                </div>
+                                <div class="col-4">
+                                    <div id="item-image-preview" class="item-image-preview" style="display: none;">
+                                        <img id="selected-item-image" src="" alt="Item image" class="selected-item-image">
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
 
                     <div class="row">
-                        <div class="col-6">
+                        <div class="col-12">
                             <div class="form-group">
                                 <label for="quantity" class="form-label">Quantity *</label>
                                 <input type="number" id="quantity" name="quantity" class="form-control" 
@@ -263,12 +302,25 @@ try {
                                 <small class="form-text">Maximum available: <span id="max-quantity">-</span></small>
                             </div>
                         </div>
+                    </div>
+
+                    <div class="row">
                         <div class="col-6">
                             <div class="form-group">
-                                <label for="expected_return_date" class="form-label">Expected Return Date *</label>
-                                <input type="date" id="expected_return_date" name="expected_return_date" 
+                                <label for="borrow_start_date" class="form-label">Borrow Start Date *</label>
+                                <input type="date" id="borrow_start_date" name="borrow_start_date" 
+                                       class="form-control" required 
+                                       min="<?php echo date('Y-m-d'); ?>">
+                                <small class="form-text">When you need to start using the equipment</small>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label for="borrow_end_date" class="form-label">Borrow End Date *</label>
+                                <input type="date" id="borrow_end_date" name="borrow_end_date" 
                                        class="form-control" required 
                                        min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>">
+                                <small class="form-text">When you will return the equipment</small>
                             </div>
                         </div>
                     </div>
@@ -300,6 +352,22 @@ try {
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="hideModal('request-details-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="image-preview-modal" class="modal" style="display: none;">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="image-preview-title">Item Image</h3>
+                <button onclick="hideModal('image-preview-modal')">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="preview-modal-image" src="" alt="" class="preview-modal-image">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideModal('image-preview-modal')">Close</button>
             </div>
         </div>
     </div>

@@ -92,6 +92,28 @@
   margin-bottom: var(--space-6);
 }
 
+.auth-form .form-label {
+  display: block;
+  margin-bottom: var(--space-2);
+  font-weight: 600;
+  color: var(--gray-800) !important;
+  font-size: 0.875rem;
+  text-shadow: none;
+  opacity: 1;
+}
+
+.auth-form .form-label a,
+.auth-form .checkbox-container a {
+  color: var(--primary) !important;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.auth-form .form-label a:hover,
+.auth-form .checkbox-container a:hover {
+  text-decoration: underline;
+}
+
 .form-text {
   font-size: 0.75rem;
   color: var(--gray-500);
@@ -146,17 +168,20 @@
 }
 
 /* Custom Checkbox */
-.checkbox-container {
+.auth-form .checkbox-container {
   display: flex;
   align-items: center;
   font-size: 0.875rem;
-  color: var(--gray-600);
+  color: var(--gray-800) !important;
   cursor: pointer;
   position: relative;
   padding-left: 1.5rem;
+  font-weight: 500;
+  opacity: 1;
+  text-shadow: none;
 }
 
-.checkbox-container input {
+.auth-form .checkbox-container input {
   position: absolute;
   opacity: 0;
   cursor: pointer;
@@ -177,11 +202,11 @@
   transition: all 0.2s ease;
 }
 
-.checkbox-container:hover input ~ .checkmark {
+.auth-form .checkbox-container:hover input ~ .checkmark {
   border-color: var(--primary);
 }
 
-.checkbox-container input:checked ~ .checkmark {
+.auth-form .checkbox-container input:checked ~ .checkmark {
   background-color: var(--primary);
   border-color: var(--primary);
 }
@@ -192,11 +217,11 @@
   display: none;
 }
 
-.checkbox-container input:checked ~ .checkmark:after {
+.auth-form .checkbox-container input:checked ~ .checkmark:after {
   display: block;
 }
 
-.checkbox-container .checkmark:after {
+.auth-form .checkbox-container .checkmark:after {
   left: 4px;
   top: 1px;
   width: 6px;
@@ -339,6 +364,14 @@
 
   .form-title {
     color: var(--gray-100);
+  }
+
+  .auth-form .form-label {
+    color: var(--gray-200) !important;
+  }
+
+  .auth-form .checkbox-container {
+    color: var(--gray-300) !important;
   }
 
   .form-control {

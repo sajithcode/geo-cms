@@ -17,7 +17,7 @@ $page_title = 'Inventory Management - Staff';
 // Get all borrow requests
 try {
     $stmt = $pdo->prepare("
-        SELECT br.*, ii.name as item_name, ii.description as item_description,
+        SELECT br.*, ii.name as item_name, ii.description as item_description, ii.image_path,
                u.name as requester_name, u.user_id as requester_id, u.email as requester_email,
                approver.name as approved_by_name
         FROM borrow_requests br
@@ -194,10 +194,11 @@ try {
                             <thead>
                                 <tr>
                                     <th>Requester</th>
+                                    <th>Image</th>
                                     <th>Item</th>
                                     <th>Quantity</th>
                                     <th>Reason</th>
-                                    <th>Expected Return</th>
+                                    <th>Borrow Period</th>
                                     <th>Request Date</th>
                                     <th>Status</th>
                                     <th>Actions</th>
@@ -206,7 +207,7 @@ try {
                             <tbody>
                                 <?php if (empty($all_requests)): ?>
                                     <tr>
-                                        <td colspan="8" class="text-center">
+                                        <td colspan="9" class="text-center">
                                             <div class="empty-state">
                                                 <div class="empty-icon">📋</div>
                                                 <h3>No Requests Found</h3>
@@ -223,6 +224,19 @@ try {
                                                     <small class="text-muted"><?php echo htmlspecialchars($request['requester_id']); ?></small>
                                                 </div>
                                             </td>
+                                            <td class="image-column">
+                                                <?php if ($request['image_path']): ?>
+                                                    <div class="item-image-container">
+                                                        <img src="../<?php echo htmlspecialchars($request['image_path']); ?>" 
+                                                             alt="<?php echo htmlspecialchars($request['item_name']); ?>"
+                                                             class="item-table-image clickable-image"
+                                                             onclick="showImagePreview('../<?php echo htmlspecialchars($request['image_path']); ?>', '<?php echo htmlspecialchars($request['item_name']); ?>')"
+                                                             onerror="this.parentElement.innerHTML='<span class=&quot;no-image&quot;>📷</span>'">
+                                                    </div>
+                                                <?php else: ?>
+                                                    <span class="no-image">📷</span>
+                                                <?php endif; ?>
+                                            </td>
                                             <td>
                                                 <div class="item-info">
                                                     <strong><?php echo htmlspecialchars($request['item_name']); ?></strong>
@@ -237,7 +251,20 @@ try {
                                                     <?php echo strlen($request['reason']) > 50 ? substr(htmlspecialchars($request['reason']), 0, 50) . '...' : htmlspecialchars($request['reason']); ?>
                                                 </div>
                                             </td>
-                                            <td><?php echo $request['expected_return_date'] ? formatDate($request['expected_return_date']) : '-'; ?></td>
+                                            <td>
+                                                <?php if ($request['borrow_start_date'] && $request['borrow_end_date']): ?>
+                                                    <div class="date-range">
+                                                        <strong>From:</strong> <?php echo formatDate($request['borrow_start_date'], 'DD/MM/YYYY'); ?><br>
+                                                        <strong>To:</strong> <?php echo formatDate($request['borrow_end_date'], 'DD/MM/YYYY'); ?>
+                                                    </div>
+                                                <?php elseif ($request['expected_return_date']): ?>
+                                                    <div class="date-range">
+                                                        <strong>Expected Return:</strong> <?php echo formatDate($request['expected_return_date'], 'DD/MM/YYYY'); ?>
+                                                    </div>
+                                                <?php else: ?>
+                                                    -
+                                                <?php endif; ?>
+                                            </td>
                                             <td><?php echo formatDate($request['request_date'], 'DD/MM/YYYY HH:mm'); ?></td>
                                             <td>
                                                 <span class="badge badge-<?php echo getStatusBadgeClass($request['status']); ?>">
@@ -385,6 +412,22 @@ try {
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="hideModal('low-stock-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Image Preview Modal -->
+    <div id="image-preview-modal" class="modal" style="display: none;">
+        <div class="modal-content modal-lg">
+            <div class="modal-header">
+                <h3 id="image-preview-title">Item Image</h3>
+                <button onclick="hideModal('image-preview-modal')">&times;</button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="preview-modal-image" src="" alt="" class="preview-modal-image">
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="hideModal('image-preview-modal')">Close</button>
             </div>
         </div>
     </div>

@@ -69,6 +69,12 @@ try {
     if ($request['expected_return_date']) {
         $request['expected_return_date'] = date('Y-m-d', strtotime($request['expected_return_date']));
     }
+    if ($request['borrow_start_date']) {
+        $request['borrow_start_date'] = date('Y-m-d', strtotime($request['borrow_start_date']));
+    }
+    if ($request['borrow_end_date']) {
+        $request['borrow_end_date'] = date('Y-m-d', strtotime($request['borrow_end_date']));
+    }
     
     echo json_encode(['success' => true, 'request' => $request]);
     

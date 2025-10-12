@@ -16,6 +16,58 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
+// Handle image upload
+function handleImageUpload($item_id = null) {
+    if (!isset($_FILES['item_image']) || $_FILES['item_image']['error'] === UPLOAD_ERR_NO_FILE) {
+        return null; // No image uploaded
+    }
+    
+    $file = $_FILES['item_image'];
+    
+    // Check for upload errors
+    if ($file['error'] !== UPLOAD_ERR_OK) {
+        throw new Exception('Image upload failed');
+    }
+    
+    // Validate file type
+    $allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    $fileType = mime_content_type($file['tmp_name']);
+    
+    if (!in_array($fileType, $allowedTypes)) {
+        throw new Exception('Invalid image type. Only JPEG, PNG, GIF, and WebP are allowed');
+    }
+    
+    // Validate file size (max 5MB)
+    if ($file['size'] > 5 * 1024 * 1024) {
+        throw new Exception('Image size too large. Maximum 5MB allowed');
+    }
+    
+    // Create upload directory if it doesn't exist
+    $uploadDir = '../../uploads/inventory/';
+    if (!is_dir($uploadDir)) {
+        mkdir($uploadDir, 0755, true);
+    }
+    
+    // Generate unique filename
+    $extension = pathinfo($file['name'], PATHINFO_EXTENSION);
+    $filename = ($item_id ? "item_{$item_id}_" : "item_new_") . uniqid() . '.' . $extension;
+    $filepath = $uploadDir . $filename;
+    
+    // Move uploaded file
+    if (!move_uploaded_file($file['tmp_name'], $filepath)) {
+        throw new Exception('Failed to save image');
+    }
+    
+    return 'uploads/inventory/' . $filename;
+}
+
+// Delete old image file
+function deleteOldImage($imagePath) {
+    if ($imagePath && file_exists('../../' . $imagePath)) {
+        unlink('../../' . $imagePath);
+    }
+}
+
 try {
     $item_id = $_POST['item_id'] ?? '';
     $name = trim($_POST['name'] ?? '');
@@ -61,18 +113,55 @@ try {
     $pdo->beginTransaction();
     
     try {
+        $image_path = null;
+        $old_image_path = null;
+        
+        if (!empty($item_id)) {
+            // Get old image path for cleanup
+            $stmt = $pdo->prepare("SELECT image_path FROM inventory_items WHERE id = ?");
+            $stmt->execute([$item_id]);
+            $old_item = $stmt->fetch();
+            $old_image_path = $old_item ? $old_item['image_path'] : null;
+        }
+        
+        // Handle image upload
+        try {
+            $uploaded_image = handleImageUpload($item_id);
+            if ($uploaded_image) {
+                $image_path = $uploaded_image;
+                // Delete old image if we have a new one
+                if ($old_image_path && $old_image_path !== $image_path) {
+                    deleteOldImage($old_image_path);
+                }
+            } else {
+                // Check if current image should be removed
+                if (isset($_POST['remove_current_image']) && $_POST['remove_current_image'] === 'true') {
+                    if ($old_image_path) {
+                        deleteOldImage($old_image_path);
+                    }
+                    $image_path = null;
+                } else {
+                    // Keep existing image if no new image uploaded
+                    $image_path = $old_image_path;
+                }
+            }
+        } catch (Exception $e) {
+            echo json_encode(['success' => false, 'message' => $e->getMessage()]);
+            exit;
+        }
+        
         if (!empty($item_id)) {
             // Update existing item
             $stmt = $pdo->prepare("
                 UPDATE inventory_items 
-                SET name = ?, description = ?, category_id = ?, 
+                SET name = ?, description = ?, image_path = ?, category_id = ?, 
                     quantity_total = ?, quantity_available = ?, 
                     quantity_borrowed = ?, quantity_maintenance = ?,
                     updated_at = NOW(), updated_by = ?
                 WHERE id = ?
             ");
             $stmt->execute([
-                $name, $description, $category_id, 
+                $name, $description, $image_path, $category_id, 
                 $quantity_total, $quantity_available, 
                 $quantity_borrowed, $quantity_maintenance,
                 $user_id, $item_id
@@ -86,20 +175,36 @@ try {
             // Create new item
             $stmt = $pdo->prepare("
                 INSERT INTO inventory_items (
-                    name, description, category_id, 
+                    name, description, image_path, category_id, 
                     quantity_total, quantity_available, 
                     quantity_borrowed, quantity_maintenance,
                     status, created_at, created_by
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, 'active', NOW(), ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'active', NOW(), ?)
             ");
             $stmt->execute([
-                $name, $description, $category_id, 
+                $name, $description, $image_path, $category_id, 
                 $quantity_total, $quantity_available, 
                 $quantity_borrowed, $quantity_maintenance,
                 $user_id
             ]);
             
             $result_id = $pdo->lastInsertId();
+            
+            // Update image filename with actual item ID
+            if ($image_path && strpos($image_path, 'item_new_') !== false) {
+                $old_path = '../../' . $image_path;
+                $new_filename = str_replace('item_new_', "item_{$result_id}_", basename($image_path));
+                $new_path = '../../uploads/inventory/' . $new_filename;
+                $new_image_path = 'uploads/inventory/' . $new_filename;
+                
+                if (rename($old_path, $new_path)) {
+                    $image_path = $new_image_path;
+                    // Update database with correct path
+                    $stmt = $pdo->prepare("UPDATE inventory_items SET image_path = ? WHERE id = ?");
+                    $stmt->execute([$image_path, $result_id]);
+                }
+            }
+            
             $action = 'item_created';
             $message = 'Item created successfully';
         }
