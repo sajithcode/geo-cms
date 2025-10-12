@@ -305,7 +305,7 @@ function initializeTooltips() {
 
 // Quick action functions
 function quickBorrowRequest() {
-  window.location.href = "inventory/request-borrow.php";
+  window.location.href = "inventory/";
 }
 
 function quickLabRequest() {

@@ -301,14 +301,17 @@ try {
                         </div>
                         <div class="tile-actions">
                             <?php if ($user_role === 'student'): ?>
-                                <a href="inventory/request-borrow.php" class="btn btn-primary">Request to Borrow</a>
-                                <a href="inventory/my-requests.php" class="btn btn-outline-primary">My Requests</a>
-                            <?php elseif ($user_role === 'staff' || $user_role === 'admin'): ?>
-                                <a href="inventory/manage-requests.php" class="btn btn-primary">Manage Requests</a>
-                                <a href="inventory/manage-items.php" class="btn btn-outline-primary">Manage Items</a>
+                                <a href="inventory/" class="btn btn-primary">Request to Borrow</a>
+                                <a href="inventory/" class="btn btn-outline-primary">My Requests</a>
+                            <?php elseif ($user_role === 'staff'): ?>
+                                <a href="inventory/" class="btn btn-primary">Manage Requests</a>
+                                <a href="inventory/" class="btn btn-outline-primary">Inventory Status</a>
+                            <?php elseif ($user_role === 'admin'): ?>
+                                <a href="inventory/" class="btn btn-primary">Admin Dashboard</a>
+                                <a href="inventory/" class="btn btn-outline-primary">Manage Items</a>
                             <?php else: ?>
-                                <a href="inventory/view-status.php" class="btn btn-primary">View Status</a>
-                                <a href="inventory/request-borrow.php" class="btn btn-outline-primary">Request Items</a>
+                                <a href="inventory/" class="btn btn-primary">View Inventory</a>
+                                <a href="inventory/" class="btn btn-outline-primary">Request Items</a>
                             <?php endif; ?>
                         </div>
                     </div>
