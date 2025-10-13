@@ -115,6 +115,14 @@ try {
                         <span class="icon">🏠</span>
                         Dashboard
                     </a></li>
+                    <li><a href="inventory/">
+                        <span class="icon">📦</span>
+                        Inventory
+                    </a></li>
+                    <li><a href="labs/">
+                        <span class="icon">🔬</span>
+                        Labs
+                    </a></li>
                     <li><a href="profile.php">
                         <span class="icon">👤</span>
                         Profile
@@ -323,14 +331,14 @@ try {
                         </div>
                         <div class="tile-actions">
                             <?php if ($user_role === 'student'): ?>
-                                <a href="labs/request-reservation.php" class="btn btn-primary">Request Lab Use</a>
-                                <a href="labs/view-timetable.php" class="btn btn-outline-primary">View Timetable</a>
+                                <a href="labs/" class="btn btn-primary">Request Lab Use</a>
+                                <a href="labs/" class="btn btn-outline-primary">View My Requests</a>
                             <?php elseif ($user_role === 'lecturer'): ?>
-                                <a href="labs/request-reservation.php" class="btn btn-primary">Request Lab Reservation</a>
-                                <a href="labs/view-timetable.php" class="btn btn-outline-primary">View Timetable</a>
+                                <a href="labs/" class="btn btn-primary">Request Lab Reservation</a>
+                                <a href="labs/" class="btn btn-outline-primary">View Timetables</a>
                             <?php else: ?>
-                                <a href="labs/manage-reservations.php" class="btn btn-primary">Manage Reservations</a>
-                                <a href="labs/manage-timetable.php" class="btn btn-outline-primary">Manage Timetable</a>
+                                <a href="labs/" class="btn btn-primary">Manage Labs</a>
+                                <a href="labs/" class="btn btn-outline-primary">Admin Dashboard</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -348,7 +356,7 @@ try {
                             </div>
                         </a>
                         
-                        <a href="labs/labs-overview.php" class="action-card">
+                        <a href="labs/" class="action-card">
                             <div class="action-icon">🏢</div>
                             <div class="action-text">
                                 <h4>Labs Overview</h4>
