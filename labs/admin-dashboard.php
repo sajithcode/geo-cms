@@ -315,6 +315,88 @@ try {
             color: #6c757d;
             font-size: 0.9em;
         }
+        
+        /* Notification Animations */
+        @keyframes slideInDown {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOutUp {
+            from {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        
+        @keyframes slideOut {
+            from {
+                transform: translateX(0);
+                opacity: 1;
+            }
+            to {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+        }
+        
+        /* Notification Styles */
+        .labs-notification {
+            border-radius: 8px;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+        }
+        
+        .labs-notification .alert-content {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .labs-notification .alert-content i {
+            font-size: 1.2em;
+        }
+        
+        .labs-notification .btn-close {
+            padding: 0.25rem;
+            font-size: 1.2em;
+            background: none;
+            border: none;
+            opacity: 0.7;
+            cursor: pointer;
+        }
+        
+        .labs-notification .btn-close:hover {
+            opacity: 1;
+        }
+        
+        /* Loading Spinner */
+        .spinner-border {
+            width: 1.5rem;
+            height: 1.5rem;
+            border-width: 0.2em;
+        }
     </style>
 </head>
 <body>
