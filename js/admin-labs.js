@@ -152,26 +152,44 @@ async function approveAllVisible() {
     return;
   }
 
-  if (
-    !confirm(
-      `Are you sure you want to approve ${selectedCheckboxes.length} reservation(s)?`
-    )
-  ) {
-    return;
-  }
+  showConfirmModal(
+    "Bulk Approval",
+    `Are you sure you want to approve ${selectedCheckboxes.length} reservation(s)?`,
+    async () => {
+      const reservationIds = Array.from(selectedCheckboxes).map(
+        (cb) => cb.value
+      );
 
-  const reservationIds = Array.from(selectedCheckboxes).map((cb) => cb.value);
+      // Approve each reservation individually
+      let successCount = 0;
+      for (const reservationId of reservationIds) {
+        try {
+          const formData = new FormData();
+          formData.append("action", "approve_reservation");
+          formData.append("reservation_id", reservationId);
+          formData.append("csrf_token", getCSRFToken());
 
-  // Approve each reservation
-  for (const reservationId of reservationIds) {
-    await approveReservation(reservationId);
-  }
+          const response = await fetch("php/labs_api.php", {
+            method: "POST",
+            body: formData,
+          });
 
-  showNotification(
-    `${reservationIds.length} reservations approved successfully`,
-    "success"
+          const result = await response.json();
+          if (result.success) {
+            successCount++;
+          }
+        } catch (error) {
+          console.error(`Error approving reservation ${reservationId}:`, error);
+        }
+      }
+
+      showNotification(
+        `${successCount} of ${reservationIds.length} reservations approved successfully`,
+        successCount > 0 ? "success" : "error"
+      );
+      setTimeout(() => location.reload(), 2000);
+    }
   );
-  setTimeout(() => location.reload(), 2000);
 }
 
 // Edit lab (placeholder - can be expanded)
@@ -191,49 +209,11 @@ function manageTimetable(labId) {
 
 // Change lab status
 async function changeLabStatus(labId) {
-  const newStatus = prompt(
-    "Enter new status (available, maintenance, in_use):"
-  );
+  // Set the lab ID in the form
+  document.getElementById("status-lab-id").value = labId;
 
-  if (
-    !newStatus ||
-    !["available", "maintenance", "in_use"].includes(newStatus)
-  ) {
-    showNotification(
-      "Invalid status. Use: available, maintenance, or in_use",
-      "error"
-    );
-    return;
-  }
-
-  const formData = new FormData();
-  formData.append("action", "update_lab_status");
-  formData.append("lab_id", labId);
-  formData.append("status", newStatus);
-  formData.append("csrf_token", getCSRFToken());
-
-  try {
-    showLoading("Updating lab status...");
-
-    const response = await fetch("php/labs_api.php", {
-      method: "POST",
-      body: formData,
-    });
-
-    const result = await response.json();
-    hideLoading();
-
-    if (result.success) {
-      showNotification(result.message, "success");
-      setTimeout(() => location.reload(), 1500);
-    } else {
-      showNotification(result.message, "error");
-    }
-  } catch (error) {
-    hideLoading();
-    showNotification("An error occurred while updating lab status", "error");
-    console.error("Lab status update error:", error);
-  }
+  // Show the status modal
+  showModal("lab-status-modal");
 }
 
 // View pending requests for specific lab
@@ -325,89 +305,116 @@ function viewIssueDetails(issueId) {
 
 // Reservation management functions
 async function approveReservation(reservationId) {
-  const notes = prompt("Add approval notes (optional):");
-
-  if (notes === null) return; // User cancelled
-
-  const formData = new FormData();
-  formData.append("action", "approve_reservation");
-  formData.append("reservation_id", reservationId);
-  formData.append("notes", notes || "");
-  formData.append("csrf_token", getCSRFToken());
-
-  try {
-    showLoading("Approving reservation...");
-
-    const response = await fetch("php/labs_api.php", {
-      method: "POST",
-      body: formData,
-    });
-
-    const result = await response.json();
-    hideLoading();
-
-    if (result.success) {
-      showNotification(result.message, "success");
-      setTimeout(() => location.reload(), 1500);
-    } else {
-      showNotification(
-        result.message || "Failed to approve reservation",
-        "error"
-      );
-    }
-  } catch (error) {
-    hideLoading();
-    showNotification(
-      "An error occurred while approving the reservation",
-      "error"
-    );
-    console.error("Approval error:", error);
-  }
+  // Show approval modal
+  showApprovalModal(reservationId, "approve");
 }
 
 async function rejectReservation(reservationId) {
-  const reason = prompt("Please provide a reason for rejection:");
+  // Show rejection modal
+  showApprovalModal(reservationId, "reject");
+}
 
-  if (!reason) {
-    showNotification("Rejection reason is required", "warning");
-    return;
+// Show approval/rejection modal
+function showApprovalModal(reservationId, action) {
+  const modal = document.getElementById("approval-modal");
+  const title = document.getElementById("approval-title");
+  const submitBtn = document.getElementById("approval-submit-btn");
+  const notesLabel = document.querySelector(
+    '#approval-modal label[for="approval-notes"]'
+  );
+  const notesTextarea = document.getElementById("approval-notes");
+
+  document.getElementById("approval-reservation-id").value = reservationId;
+  document.getElementById("approval-action").value = action;
+
+  // Reset textarea
+  notesTextarea.value = "";
+  notesTextarea.required = false;
+
+  if (action === "approve") {
+    title.textContent = "Approve Reservation";
+    notesLabel.innerHTML = "Notes (Optional)";
+    notesTextarea.placeholder =
+      "Add any notes or conditions for this approval...";
+    submitBtn.className = "btn btn-success";
+    submitBtn.textContent = "Approve";
+  } else {
+    title.textContent = "Reject Reservation";
+    notesLabel.innerHTML =
+      'Rejection Reason <span style="color: red;">*</span>';
+    notesTextarea.placeholder = "Provide a reason for rejection...";
+    notesTextarea.required = true;
+    submitBtn.className = "btn btn-danger";
+    submitBtn.textContent = "Reject";
   }
 
-  const formData = new FormData();
-  formData.append("action", "reject_reservation");
-  formData.append("reservation_id", reservationId);
-  formData.append("reason", reason);
-  formData.append("csrf_token", getCSRFToken());
+  showModal("approval-modal");
+}
 
-  try {
-    showLoading("Rejecting reservation...");
+// Handle approval form submission
+document
+  .getElementById("approval-form")
+  ?.addEventListener("submit", async function (e) {
+    e.preventDefault();
 
-    const response = await fetch("php/labs_api.php", {
-      method: "POST",
-      body: formData,
-    });
+    const formData = new FormData(this);
+    const action = formData.get("action");
+    const reservationId = formData.get("reservation_id");
+    const notes = formData.get("notes");
 
-    const result = await response.json();
-    hideLoading();
+    if (action === "reject" && !notes.trim()) {
+      showNotification("Rejection reason is required", "error");
+      return;
+    }
 
-    if (result.success) {
-      showNotification(result.message, "success");
-      setTimeout(() => location.reload(), 1500);
-    } else {
+    try {
+      showLoading(
+        action === "approve"
+          ? "Approving reservation..."
+          : "Rejecting reservation..."
+      );
+
+      const apiFormData = new FormData();
+      apiFormData.append(
+        "action",
+        action === "approve" ? "approve_reservation" : "reject_reservation"
+      );
+      apiFormData.append("reservation_id", reservationId);
+      apiFormData.append("csrf_token", getCSRFToken());
+
+      if (action === "approve") {
+        apiFormData.append("notes", notes);
+      } else {
+        apiFormData.append("reason", notes);
+      }
+
+      const response = await fetch("php/labs_api.php", {
+        method: "POST",
+        body: apiFormData,
+      });
+
+      const result = await response.json();
+      hideLoading();
+
+      if (result.success) {
+        showNotification(result.message, "success");
+        hideModal("approval-modal");
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        showNotification(
+          result.message || "Failed to process reservation",
+          "error"
+        );
+      }
+    } catch (error) {
+      hideLoading();
       showNotification(
-        result.message || "Failed to reject reservation",
+        "An error occurred while processing the request",
         "error"
       );
+      console.error("Approval error:", error);
     }
-  } catch (error) {
-    hideLoading();
-    showNotification(
-      "An error occurred while rejecting the reservation",
-      "error"
-    );
-    console.error("Rejection error:", error);
-  }
-}
+  });
 
 async function viewReservationDetails(reservationId) {
   try {
@@ -434,18 +441,76 @@ async function viewReservationDetails(reservationId) {
 }
 
 function displayReservationDetails(reservation) {
-  // This would populate a modal with reservation details
-  // For now, just show a notification with key details
-  const details = `
-    Reservation #${reservation.id}
-    Lab: ${reservation.lab_name}
-    Requester: ${reservation.requester_name}
-    Date: ${reservation.reservation_date}
-    Time: ${reservation.start_time} - ${reservation.end_time}
-    Purpose: ${reservation.purpose}
-  `;
+  // Populate the reservation details modal
+  const detailsContent = document.getElementById("reservation-details-content");
 
-  alert(details); // Temporary - should be replaced with a proper modal
+  detailsContent.innerHTML = `
+    <div class="details-grid">
+      <div class="detail-row">
+        <strong>Reservation ID:</strong>
+        <span>#${reservation.id}</span>
+      </div>
+      <div class="detail-row">
+        <strong>Lab:</strong>
+        <span>${reservation.lab_name || "N/A"}</span>
+      </div>
+      <div class="detail-row">
+        <strong>Requester:</strong>
+        <span>${reservation.requester_name || "N/A"}</span>
+      </div>
+      <div class="detail-row">
+        <strong>Date:</strong>
+        <span>${reservation.reservation_date || "N/A"}</span>
+      </div>
+      <div class="detail-row">
+        <strong>Time:</strong>
+        <span>${reservation.start_time || "N/A"} - ${
+    reservation.end_time || "N/A"
+  }</span>
+      </div>
+      <div class="detail-row">
+        <strong>Purpose:</strong>
+        <span>${reservation.purpose || "N/A"}</span>
+      </div>
+      <div class="detail-row">
+        <strong>Status:</strong>
+        <span class="badge badge-${getStatusBadgeClass(reservation.status)}">${
+    reservation.status || "N/A"
+  }</span>
+      </div>
+      ${
+        reservation.notes
+          ? `
+      <div class="detail-row">
+        <strong>Notes:</strong>
+        <span>${reservation.notes}</span>
+      </div>
+      `
+          : ""
+      }
+      ${
+        reservation.rejection_reason
+          ? `
+      <div class="detail-row">
+        <strong>Rejection Reason:</strong>
+        <span class="text-danger">${reservation.rejection_reason}</span>
+      </div>
+      `
+          : ""
+      }
+    </div>
+  `;
+}
+
+function getStatusBadgeClass(status) {
+  const statusClasses = {
+    pending: "warning",
+    approved: "success",
+    rejected: "danger",
+    cancelled: "secondary",
+    completed: "info",
+  };
+  return statusClasses[status] || "secondary";
 }
 
 // Refresh lab status function
@@ -556,8 +621,77 @@ document
     }
   });
 
-// Initialize admin-specific functionality
+// Generic confirm modal function
+function showConfirmModal(title, message, onConfirm) {
+  const modal = document.getElementById("confirm-modal");
+  const titleEl = document.getElementById("confirm-title");
+  const messageEl = document.getElementById("confirm-message");
+  const confirmBtn = document.getElementById("confirm-yes-btn");
+
+  titleEl.textContent = title;
+  messageEl.textContent = message;
+
+  // Remove old event listeners by cloning
+  const newConfirmBtn = confirmBtn.cloneNode(true);
+  confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+
+  // Add new event listener
+  newConfirmBtn.addEventListener("click", () => {
+    hideModal("confirm-modal");
+    if (typeof onConfirm === "function") {
+      onConfirm();
+    }
+  });
+
+  showModal("confirm-modal");
+}
+
+// Handle lab status form submission
 document.addEventListener("DOMContentLoaded", function () {
+  // Lab status change form handler
+  const statusForm = document.getElementById("lab-status-form");
+  if (statusForm) {
+    statusForm.addEventListener("submit", async function (e) {
+      e.preventDefault();
+
+      const labId = document.getElementById("status-lab-id").value;
+      const newStatus = document.getElementById("lab-status-select").value;
+
+      const formData = new FormData();
+      formData.append("action", "update_lab_status");
+      formData.append("lab_id", labId);
+      formData.append("status", newStatus);
+      formData.append("csrf_token", getCSRFToken());
+
+      try {
+        showLoading("Updating lab status...");
+
+        const response = await fetch("php/labs_api.php", {
+          method: "POST",
+          body: formData,
+        });
+
+        const result = await response.json();
+        hideLoading();
+
+        if (result.success) {
+          showNotification(result.message, "success");
+          hideModal("lab-status-modal");
+          setTimeout(() => location.reload(), 1500);
+        } else {
+          showNotification(result.message, "error");
+        }
+      } catch (error) {
+        hideLoading();
+        showNotification(
+          "An error occurred while updating lab status",
+          "error"
+        );
+        console.error("Lab status update error:", error);
+      }
+    });
+  }
+
   // Add any admin-specific initialization here
   console.log("Admin labs dashboard initialized");
 });

@@ -1,65 +1,65 @@
 <?php
-require_once '../php/config.php';
-
-// Require user to be logged in as student
-requireLogin();
-
-$user_id = $_SESSION['user_id'];
-$user_role = $_SESSION['role'];
-
-// Only allow students
-if ($user_role !== 'student') {
-    header('Location: index.php');
-    exit;
+// This file is included from index.php
+if (!defined('BASE_PATH')) {
+    die('Direct access not permitted');
 }
 
-$page_title = 'Labs - Student';
+$page_title = 'Labs Management - Student';
 
-// Get all labs with current status
+// Get student's reservations and labs data
 try {
-    $stmt = $pdo->query("
-        SELECT l.*, 
-               COUNT(CASE WHEN lr.status = 'approved' AND lr.reservation_date = CURDATE() 
-                          AND lr.start_time <= CURTIME() AND lr.end_time >= CURTIME() THEN 1 END) as current_bookings
-        FROM labs l
-        LEFT JOIN lab_reservations lr ON l.id = lr.lab_id
-        GROUP BY l.id
-        ORDER BY l.code ASC
-    ");
-    $labs = $stmt->fetchAll();
+    $user_id = $_SESSION['user_id'];
     
-    // Get user's reservations
+    // Get student's reservations
     $stmt = $pdo->prepare("
-        SELECT lr.*, l.name as lab_name, l.code as lab_code,
-               approved_by.name as approved_by_name
+        SELECT lr.*, l.name as lab_name, l.capacity, l.status as lab_status,
+               approver.name as approved_by_name
         FROM lab_reservations lr
         JOIN labs l ON lr.lab_id = l.id
-        LEFT JOIN users approved_by ON lr.approved_by = approved_by.id
+        LEFT JOIN users approver ON lr.approved_by = approver.id
         WHERE lr.user_id = ?
-        ORDER BY lr.request_date DESC
-        LIMIT 10
+        ORDER BY lr.reservation_date DESC, lr.start_time DESC
     ");
     $stmt->execute([$user_id]);
     $my_reservations = $stmt->fetchAll();
     
-    // Get reservation statistics
+    // Get all labs
+    $stmt = $pdo->query("SELECT * FROM labs ORDER BY name ASC");
+    $all_labs = $stmt->fetchAll();
+    
+    // Get reservation statistics for student
     $stmt = $pdo->prepare("
         SELECT 
             COUNT(*) as total_reservations,
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_reservations,
             SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END) as approved_reservations,
             SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected_reservations
-        FROM lab_reservations 
+        FROM lab_reservations
         WHERE user_id = ?
     ");
     $stmt->execute([$user_id]);
     $reservation_stats = $stmt->fetch();
     
+    // Get upcoming approved reservations
+    $stmt = $pdo->prepare("
+        SELECT lr.*, l.name as lab_name 
+        FROM lab_reservations lr
+        JOIN labs l ON lr.lab_id = l.id
+        WHERE lr.user_id = ? 
+        AND lr.status = 'approved' 
+        AND lr.reservation_date >= CURDATE()
+        ORDER BY lr.reservation_date ASC, lr.start_time ASC
+        LIMIT 5
+    ");
+    $stmt->execute([$user_id]);
+    $upcoming_reservations = $stmt->fetchAll();
+    
 } catch (PDOException $e) {
     error_log("Student labs error: " . $e->getMessage());
-    $labs = [];
     $my_reservations = [];
+    $all_labs = [];
     $reservation_stats = ['total_reservations' => 0, 'pending_reservations' => 0, 'approved_reservations' => 0, 'rejected_reservations' => 0];
+    $upcoming_reservations = [];
 }
 ?>
 <!DOCTYPE html>
@@ -70,143 +70,8 @@ try {
     <title><?php echo $page_title; ?> - <?php echo APP_NAME; ?></title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="stylesheet" href="../css/inventory.css">
+    <link rel="stylesheet" href="../css/labs.css">
     <meta name="csrf-token" content="<?php echo generateCSRFToken(); ?>">
-    <style>
-        .labs-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .lab-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            border-left: 4px solid #3498db;
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-        
-        .lab-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
-        }
-        
-        .lab-card.in-use {
-            border-left-color: #e74c3c;
-        }
-        
-        .lab-card.maintenance {
-            border-left-color: #f39c12;
-        }
-        
-        .lab-card.offline {
-            border-left-color: #95a5a6;
-        }
-        
-        .lab-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-start;
-            margin-bottom: 15px;
-        }
-        
-        .lab-title {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #2c3e50;
-            margin: 0;
-        }
-        
-        .lab-code {
-            font-size: 0.9em;
-            color: #7f8c8d;
-            margin: 0;
-        }
-        
-        .lab-status {
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 0.8em;
-            font-weight: bold;
-            text-transform: uppercase;
-        }
-        
-        .lab-status.available {
-            background: #d4edda;
-            color: #155724;
-        }
-        
-        .lab-status.in-use {
-            background: #f8d7da;
-            color: #721c24;
-        }
-        
-        .lab-status.maintenance {
-            background: #fff3cd;
-            color: #856404;
-        }
-        
-        .lab-status.offline {
-            background: #e2e3e5;
-            color: #383d41;
-        }
-        
-        .lab-info {
-            margin-bottom: 15px;
-        }
-        
-        .lab-info p {
-            margin: 5px 0;
-            color: #6c757d;
-            font-size: 0.9em;
-        }
-        
-        .lab-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
-        .reservation-item {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            border-left: 4px solid #3498db;
-            margin-bottom: 10px;
-        }
-        
-        .reservation-item.pending {
-            border-left-color: #f39c12;
-        }
-        
-        .reservation-item.approved {
-            border-left-color: #27ae60;
-        }
-        
-        .reservation-item.rejected {
-            border-left-color: #e74c3c;
-        }
-        
-        .reservation-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        
-        .reservation-title {
-            font-weight: bold;
-            color: #2c3e50;
-        }
-        
-        .reservation-details {
-            font-size: 0.9em;
-            color: #6c757d;
-        }
-    </style>
 </head>
 <body>
     <div class="dashboard-layout">
@@ -226,12 +91,12 @@ try {
                 <!-- Page Header -->
                 <div class="page-header">
                     <div class="page-title">
-                        <h1>🔬 Labs Management</h1>
-                        <p>Request lab access and track your reservations</p>
+                        <h1>🔬 Labs Management - Student</h1>
+                        <p>View lab availability and manage your reservations</p>
                     </div>
                     <div class="page-actions">
-                        <button class="btn btn-primary" onclick="showModal('request-lab-modal')">
-                            ➕ Request Lab Use
+                        <button class="btn btn-primary" onclick="showModal('lab-request-modal')">
+                            📝 Request Lab Use
                         </button>
                     </div>
                 </div>
@@ -241,15 +106,8 @@ try {
                     <div class="stat-card">
                         <div class="stat-icon">📋</div>
                         <div class="stat-info">
-                            <h3><?php echo $reservation_stats['total_reservations']; ?></h3>
-                            <p>Total Requests</p>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon">⏳</div>
-                        <div class="stat-info">
                             <h3><?php echo $reservation_stats['pending_reservations']; ?></h3>
-                            <p>Pending</p>
+                            <p>Pending Requests</p>
                         </div>
                     </div>
                     <div class="stat-card">
@@ -260,63 +118,109 @@ try {
                         </div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-icon">❌</div>
+                        <div class="stat-icon">📊</div>
                         <div class="stat-info">
-                            <h3><?php echo $reservation_stats['rejected_reservations']; ?></h3>
-                            <p>Rejected</p>
+                            <h3><?php echo $reservation_stats['total_reservations']; ?></h3>
+                            <p>Total Requests</p>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon">🔬</div>
+                        <div class="stat-info">
+                            <h3><?php echo count($all_labs); ?></h3>
+                            <p>Available Labs</p>
                         </div>
                     </div>
                 </div>
 
-                <!-- Labs Section -->
+                <!-- Upcoming Reservations -->
+                <?php if (!empty($upcoming_reservations)): ?>
+                    <div class="content-section">
+                        <div class="section-header">
+                            <h2>⏰ Upcoming Reservations</h2>
+                        </div>
+                        
+                        <div class="upcoming-reservations-list">
+                            <?php foreach ($upcoming_reservations as $reservation): ?>
+                                <div class="upcoming-reservation-card">
+                                    <div class="reservation-icon">
+                                        <span>📅</span>
+                                    </div>
+                                    <div class="reservation-info">
+                                        <h4><?php echo htmlspecialchars($reservation['lab_name']); ?></h4>
+                                        <p class="reservation-date">
+                                            <?php echo formatDate($reservation['reservation_date'], 'DD/MM/YYYY'); ?> 
+                                            • <?php echo date('H:i', strtotime($reservation['start_time'])); ?> - 
+                                            <?php echo date('H:i', strtotime($reservation['end_time'])); ?>
+                                        </p>
+                                        <p class="text-muted"><?php echo htmlspecialchars($reservation['purpose']); ?></p>
+                                    </div>
+                                    <div class="reservation-actions">
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewReservationDetails(<?php echo $reservation['id']; ?>)">
+                                            View Details
+                                        </button>
+                                        <button class="btn btn-sm btn-outline-danger" onclick="cancelReservation(<?php echo $reservation['id']; ?>)">
+                                            Cancel
+                                        </button>
+                                    </div>
+                                </div>
+                            <?php endforeach; ?>
+                        </div>
+                    </div>
+                <?php endif; ?>
+
+                <!-- Labs Overview Cards -->
                 <div class="content-section">
                     <div class="section-header">
-                        <h2>Available Labs</h2>
+                        <h2>Available Laboratories</h2>
                         <div class="section-actions">
-                            <button class="btn btn-outline-primary" onclick="refreshLabStatus()">
-                                🔄 Refresh Status
+                            <button class="btn btn-outline-primary" onclick="refreshData()">
+                                🔄 Refresh
                             </button>
                         </div>
                     </div>
 
                     <div class="labs-grid">
-                        <?php if (empty($labs)): ?>
+                        <?php if (empty($all_labs)): ?>
                             <div class="empty-state">
                                 <div class="empty-icon">🔬</div>
                                 <h3>No Labs Available</h3>
-                                <p>No laboratories are currently configured in the system.</p>
+                                <p>There are currently no laboratories available.</p>
                             </div>
                         <?php else: ?>
-                            <?php foreach ($labs as $lab): ?>
-                                <?php 
-                                $display_status = $lab['current_bookings'] > 0 ? 'in-use' : $lab['status'];
-                                $status_text = $lab['current_bookings'] > 0 ? 'In Use' : ucfirst($lab['status']);
-                                ?>
-                                <div class="lab-card <?php echo $display_status; ?>">
-                                    <div class="lab-header">
-                                        <div>
-                                            <h3 class="lab-title"><?php echo htmlspecialchars($lab['name']); ?></h3>
-                                            <p class="lab-code"><?php echo htmlspecialchars($lab['code']); ?></p>
-                                        </div>
-                                        <span class="lab-status <?php echo $display_status; ?>">
-                                            <?php echo $status_text; ?>
+                            <?php foreach ($all_labs as $lab): ?>
+                                <div class="lab-card <?php echo $lab['status']; ?>" data-lab-id="<?php echo $lab['id']; ?>">
+                                    <div class="lab-card-header">
+                                        <h3><?php echo htmlspecialchars($lab['name']); ?></h3>
+                                        <span class="lab-status <?php echo $lab['status']; ?>">
+                                            <?php 
+                                            $statusText = [
+                                                'available' => 'Available',
+                                                'in_use' => 'In Use',
+                                                'maintenance' => 'Maintenance'
+                                            ];
+                                            echo $statusText[$lab['status']] ?? ucfirst($lab['status']);
+                                            ?>
                                         </span>
                                     </div>
-                                    
-                                    <div class="lab-info">
-                                        <?php if ($lab['description']): ?>
-                                            <p><strong>Description:</strong> <?php echo htmlspecialchars($lab['description']); ?></p>
-                                        <?php endif; ?>
-                                        <p><strong>Capacity:</strong> <?php echo $lab['capacity']; ?> students</p>
+                                    <div class="lab-card-body">
+                                        <p class="lab-description">
+                                            <?php echo htmlspecialchars($lab['description'] ?? 'No description available'); ?>
+                                        </p>
+                                        <div class="lab-details">
+                                            <div class="detail-item">
+                                                <span class="detail-label">Capacity:</span>
+                                                <span class="detail-value"><?php echo $lab['capacity']; ?> seats</span>
+                                            </div>
+                                        </div>
                                     </div>
-                                    
-                                    <div class="lab-actions">
+                                    <div class="lab-card-footer">
                                         <button class="btn btn-sm btn-outline-primary" onclick="viewTimetable(<?php echo $lab['id']; ?>)">
                                             📅 View Timetable
                                         </button>
                                         <?php if ($lab['status'] === 'available'): ?>
-                                            <button class="btn btn-sm btn-primary" onclick="requestLabUse(<?php echo $lab['id']; ?>)">
-                                                📝 Request Use
+                                            <button class="btn btn-sm btn-primary" onclick="requestLab(<?php echo $lab['id']; ?>)">
+                                                📝 Request
                                             </button>
                                         <?php endif; ?>
                                     </div>
@@ -326,80 +230,96 @@ try {
                     </div>
                 </div>
 
-                <!-- My Reservations Section -->
+                <!-- My Reservations -->
                 <div class="content-section">
                     <div class="section-header">
-                        <h2>My Lab Reservations</h2>
+                        <h2>My Reservation Requests</h2>
                         <div class="section-actions">
                             <div class="filter-group">
-                                <select id="status-filter" class="form-control">
+                                <select id="status-filter" class="form-control" onchange="filterMyReservations()">
                                     <option value="">All Status</option>
                                     <option value="pending">Pending</option>
                                     <option value="approved">Approved</option>
                                     <option value="rejected">Rejected</option>
-                                    <option value="cancelled">Cancelled</option>
                                     <option value="completed">Completed</option>
                                 </select>
                             </div>
                         </div>
                     </div>
 
-                    <div class="reservations-list">
-                        <?php if (empty($my_reservations)): ?>
-                            <div class="empty-state">
-                                <div class="empty-icon">📋</div>
-                                <h3>No Reservations Yet</h3>
-                                <p>You haven't made any lab reservations. Click "Request Lab Use" to get started.</p>
-                                <button class="btn btn-primary" onclick="showModal('request-lab-modal')">Make Your First Request</button>
-                            </div>
-                        <?php else: ?>
-                            <?php foreach ($my_reservations as $reservation): ?>
-                                <div class="reservation-item <?php echo $reservation['status']; ?>" data-status="<?php echo $reservation['status']; ?>">
-                                    <div class="reservation-header">
-                                        <div class="reservation-title">
-                                            <?php echo htmlspecialchars($reservation['lab_name']); ?>
-                                        </div>
-                                        <span class="badge badge-<?php echo getStatusBadgeClass($reservation['status']); ?>">
-                                            <?php echo ucfirst($reservation['status']); ?>
-                                        </span>
-                                    </div>
-                                    <div class="reservation-details">
-                                        <p><strong>Date:</strong> <?php echo formatDate($reservation['reservation_date'], 'DD/MM/YYYY'); ?></p>
-                                        <p><strong>Time:</strong> <?php echo formatTime($reservation['start_time']); ?> - <?php echo formatTime($reservation['end_time']); ?></p>
-                                        <p><strong>Purpose:</strong> <?php echo htmlspecialchars($reservation['purpose']); ?></p>
-                                        <p><strong>Requested:</strong> <?php echo formatDate($reservation['request_date'], 'DD/MM/YYYY HH:mm'); ?></p>
-                                        <?php if ($reservation['status'] === 'approved' && $reservation['approved_by_name']): ?>
-                                            <p><strong>Approved by:</strong> <?php echo htmlspecialchars($reservation['approved_by_name']); ?></p>
-                                        <?php endif; ?>
-                                        <?php if ($reservation['notes']): ?>
-                                            <p><strong>Notes:</strong> <?php echo htmlspecialchars($reservation['notes']); ?></p>
-                                        <?php endif; ?>
-                                    </div>
-                                    <div class="reservation-actions">
-                                        <button class="btn btn-sm btn-outline-primary" onclick="viewReservationDetails(<?php echo $reservation['id']; ?>)">
-                                            View Details
-                                        </button>
-                                        <?php if ($reservation['status'] === 'pending'): ?>
-                                            <button class="btn btn-sm btn-outline-danger" onclick="cancelReservation(<?php echo $reservation['id']; ?>)">
-                                                Cancel
-                                            </button>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                            <?php endforeach; ?>
-                        <?php endif; ?>
+                    <div class="table-container">
+                        <table class="table table-hover" id="my-reservations-table">
+                            <thead>
+                                <tr>
+                                    <th>Lab</th>
+                                    <th>Date</th>
+                                    <th>Time</th>
+                                    <th>Purpose</th>
+                                    <th>Status</th>
+                                    <th>Requested On</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php if (empty($my_reservations)): ?>
+                                    <tr>
+                                        <td colspan="7" class="text-center">
+                                            <div class="empty-state">
+                                                <div class="empty-icon">📋</div>
+                                                <h3>No Reservations Yet</h3>
+                                                <p>You haven't made any lab reservation requests yet.</p>
+                                                <button class="btn btn-primary" onclick="showModal('lab-request-modal')">
+                                                    Make Your First Request
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($my_reservations as $reservation): ?>
+                                        <tr data-status="<?php echo $reservation['status']; ?>">
+                                            <td><?php echo htmlspecialchars($reservation['lab_name']); ?></td>
+                                            <td><?php echo formatDate($reservation['reservation_date'], 'DD/MM/YYYY'); ?></td>
+                                            <td><?php echo date('H:i', strtotime($reservation['start_time'])); ?> - <?php echo date('H:i', strtotime($reservation['end_time'])); ?></td>
+                                            <td>
+                                                <div class="purpose-text" title="<?php echo htmlspecialchars($reservation['purpose']); ?>">
+                                                    <?php echo strlen($reservation['purpose']) > 50 ? substr(htmlspecialchars($reservation['purpose']), 0, 50) . '...' : htmlspecialchars($reservation['purpose']); ?>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                <span class="badge badge-<?php echo getReservationBadgeClass($reservation['status']); ?>">
+                                                    <?php echo ucfirst($reservation['status']); ?>
+                                                </span>
+                                            </td>
+                                            <td><?php echo formatDate($reservation['request_date'], 'DD/MM/YYYY'); ?></td>
+                                            <td>
+                                                <div class="action-buttons">
+                                                    <button class="btn btn-sm btn-outline-primary" onclick="viewReservationDetails(<?php echo $reservation['id']; ?>)">
+                                                        View
+                                                    </button>
+                                                    <?php if ($reservation['status'] === 'pending'): ?>
+                                                        <button class="btn btn-sm btn-outline-danger" onclick="cancelReservation(<?php echo $reservation['id']; ?>)">
+                                                            Cancel
+                                                        </button>
+                                                    <?php endif; ?>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- Request Lab Modal -->
-    <div id="request-lab-modal" class="modal" style="display: none;">
-        <div class="modal-content modal-lg">
+    <!-- Lab Request Modal -->
+    <div id="lab-request-modal" class="modal" style="display: none;">
+        <div class="modal-content">
             <div class="modal-header">
                 <h3>Request Lab Use</h3>
-                <button onclick="hideModal('request-lab-modal')">&times;</button>
+                <button onclick="hideModal('lab-request-modal')">&times;</button>
             </div>
             <form id="lab-request-form">
                 <div class="modal-body">
@@ -409,11 +329,9 @@ try {
                         <label for="lab_id" class="form-label">Select Lab *</label>
                         <select id="lab_id" name="lab_id" class="form-control form-select" required>
                             <option value="">Choose a lab</option>
-                            <?php foreach ($labs as $lab): ?>
+                            <?php foreach ($all_labs as $lab): ?>
                                 <?php if ($lab['status'] === 'available'): ?>
-                                    <option value="<?php echo $lab['id']; ?>" 
-                                            data-capacity="<?php echo $lab['capacity']; ?>"
-                                            data-description="<?php echo htmlspecialchars($lab['description']); ?>">
+                                    <option value="<?php echo $lab['id']; ?>">
                                         <?php echo htmlspecialchars($lab['name']); ?> (Capacity: <?php echo $lab['capacity']; ?>)
                                     </option>
                                 <?php endif; ?>
@@ -421,44 +339,23 @@ try {
                         </select>
                     </div>
 
-                    <div class="lab-details" id="lab-details" style="display: none;">
-                        <div class="alert alert-info">
-                            <p id="lab-description"></p>
-                            <p><strong>Capacity:</strong> <span id="lab-capacity"></span> students</p>
-                        </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label for="reservation_date" class="form-label">Date *</label>
-                                <input type="date" id="reservation_date" name="reservation_date" 
-                                       class="form-control" required 
-                                       min="<?php echo date('Y-m-d'); ?>">
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="form-group">
-                                <label for="expected_attendees" class="form-label">Expected Attendees *</label>
-                                <input type="number" id="expected_attendees" name="expected_attendees" 
-                                       class="form-control" min="1" max="50" required value="1">
-                            </div>
-                        </div>
+                    <div class="form-group">
+                        <label for="reservation_date" class="form-label">Date *</label>
+                        <input type="date" id="reservation_date" name="reservation_date" class="form-control" 
+                               min="<?php echo date('Y-m-d'); ?>" required>
                     </div>
 
                     <div class="row">
                         <div class="col-6">
                             <div class="form-group">
                                 <label for="start_time" class="form-label">Start Time *</label>
-                                <input type="time" id="start_time" name="start_time" 
-                                       class="form-control" required>
+                                <input type="time" id="start_time" name="start_time" class="form-control" required>
                             </div>
                         </div>
                         <div class="col-6">
                             <div class="form-group">
                                 <label for="end_time" class="form-label">End Time *</label>
-                                <input type="time" id="end_time" name="end_time" 
-                                       class="form-control" required>
+                                <input type="time" id="end_time" name="end_time" class="form-control" required>
                             </div>
                         </div>
                     </div>
@@ -466,26 +363,32 @@ try {
                     <div class="form-group">
                         <label for="purpose" class="form-label">Purpose *</label>
                         <textarea id="purpose" name="purpose" class="form-control" rows="3" required
-                                  placeholder="Please describe the purpose of your lab reservation..."></textarea>
+                                  placeholder="Describe the purpose of your lab reservation..."></textarea>
+                    </div>
+
+                    <div class="alert alert-info">
+                        <strong>Note:</strong> Your request will be reviewed by lab staff. You will be notified once your request is approved or rejected.
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" onclick="hideModal('request-lab-modal')">Cancel</button>
+                    <button type="button" class="btn btn-secondary" onclick="hideModal('lab-request-modal')">Cancel</button>
                     <button type="submit" class="btn btn-primary">Submit Request</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Timetable Modal -->
+    <!-- Timetable View Modal -->
     <div id="timetable-modal" class="modal" style="display: none;">
-        <div class="modal-content modal-lg">
+        <div class="modal-content modal-xl">
             <div class="modal-header">
-                <h3 id="timetable-title">Lab Timetable</h3>
+                <h3 id="timetable-modal-title">Lab Timetable</h3>
                 <button onclick="hideModal('timetable-modal')">&times;</button>
             </div>
-            <div class="modal-body" id="timetable-content">
-                <!-- Content will be loaded via JavaScript -->
+            <div class="modal-body">
+                <div id="timetable-content">
+                    <!-- Timetable will be loaded here -->
+                </div>
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="hideModal('timetable-modal')">Close</button>
@@ -509,24 +412,65 @@ try {
         </div>
     </div>
 
+    <!-- Confirmation Modal (Generic) -->
+    <div id="confirm-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="confirm-title">Confirm Action</h3>
+                <button onclick="hideModal('confirm-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p id="confirm-message">Are you sure you want to proceed?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('confirm-modal')">Cancel</button>
+                <button type="button" class="btn btn-primary" id="confirm-yes-btn">Confirm</button>
+            </div>
+        </div>
+    </div>
+
     <script src="../js/script.js"></script>
     <script src="../js/labs.js"></script>
+    <script>
+        // Student-specific functionality
+        function requestLab(labId) {
+            // Pre-fill the lab selection
+            document.getElementById('lab_id').value = labId;
+            showModal('lab-request-modal');
+        }
+
+        function filterMyReservations() {
+            const statusFilter = document.getElementById('status-filter');
+            const rows = document.querySelectorAll('#my-reservations-table tbody tr');
+
+            rows.forEach(row => {
+                if (!row.dataset.status) return;
+                
+                let showRow = true;
+
+                if (statusFilter && statusFilter.value !== '') {
+                    showRow = row.dataset.status === statusFilter.value;
+                }
+
+                row.style.display = showRow ? '' : 'none';
+            });
+        }
+
+        function refreshData() {
+            location.reload();
+        }
+    </script>
 </body>
 </html>
 
 <?php
-function getStatusBadgeClass($status) {
+function getReservationBadgeClass($status) {
     switch ($status) {
         case 'pending': return 'warning';
         case 'approved': return 'success';
         case 'rejected': return 'danger';
-        case 'cancelled': return 'secondary';
-        case 'completed': return 'success';
+        case 'completed': return 'secondary';
         default: return 'secondary';
     }
-}
-
-function formatTime($time) {
-    return date('H:i', strtotime($time));
 }
 ?>

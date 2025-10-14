@@ -1,26 +1,28 @@
 <?php
+define('BASE_PATH', dirname(__DIR__));
 require_once '../php/config.php';
 
 // Require user to be logged in
 requireLogin();
 
-$user_id = $_SESSION['user_id'];
 $user_role = $_SESSION['role'];
-$page_title = 'Labs Management';
 
-// Redirect based on user role
+// Route to appropriate dashboard based on role
 switch ($user_role) {
     case 'admin':
+        include 'admin-dashboard.php';
+        break;
     case 'staff':
-        header('Location: admin-dashboard.php');
-        exit;
+        include 'staff-dashboard.php';
+        break;
     case 'lecturer':
-        header('Location: lecturer-dashboard.php');
-        exit;
+        include 'lecturer-dashboard.php';
+        break;
     case 'student':
-        header('Location: student-dashboard.php');
-        exit;
+        include 'student-dashboard.php';
+        break;
     default:
-        redirectTo('../index.php');
+        // Fallback - should never reach here
+        redirectTo('../dashboard.php');
 }
 ?>
