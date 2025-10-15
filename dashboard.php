@@ -56,7 +56,7 @@ try {
             $stmt = $pdo->query("SELECT COUNT(*) as available_labs FROM labs WHERE status = 'available'");
             $stats['available_labs'] = $stmt->fetchColumn();
             
-            $stmt = $pdo->prepare("SELECT COUNT(*) as my_issues FROM issue_reports WHERE user_id = ? AND status != 'fixed'");
+            $stmt = $pdo->prepare("SELECT COUNT(*) as my_issues FROM issue_reports WHERE reported_by = ? AND status != 'resolved'");
             $stmt->execute([$user_id]);
             $stats['my_issues'] = $stmt->fetchColumn();
             break;
@@ -75,19 +75,16 @@ try {
             $stmt->execute([$user_id]);
             $stats['my_lab_requests'] = $stmt->fetchColumn();
             
-            $stmt = $pdo->prepare("SELECT COUNT(*) as my_reports FROM issue_reports WHERE user_id = ? AND status != 'fixed'");
+            $stmt = $pdo->prepare("SELECT COUNT(*) as my_reports FROM issue_reports WHERE reported_by = ? AND status != 'resolved'");
             $stmt->execute([$user_id]);
             $stats['my_reports'] = $stmt->fetchColumn();
             break;
     }
     
-    // Get unread notifications count
-    $unread_notifications = getUnreadNotificationCount($user_id);
-    
 } catch (PDOException $e) {
     error_log("Dashboard stats error: " . $e->getMessage());
-    $stats = [];
-    $unread_notifications = 0;
+    // Keep whatever stats we got, don't reset to empty array
+    // $stats = [];
 }
 ?>
 <!DOCTYPE html>
@@ -123,16 +120,13 @@ try {
                         <span class="icon">🔬</span>
                         Labs
                     </a></li>
+                    <li><a href="issues/">
+                        <span class="icon">🚨</span>
+                        Issues
+                    </a></li>
                     <li><a href="profile.php">
                         <span class="icon">👤</span>
                         Profile
-                    </a></li>
-                    <li><a href="notifications.php">
-                        <span class="icon">🔔</span>
-                        Notifications
-                        <?php if ($unread_notifications > 0): ?>
-                            <span class="badge badge-danger"><?php echo $unread_notifications; ?></span>
-                        <?php endif; ?>
                     </a></li>
                     <li><a href="settings.php">
                         <span class="icon">⚙️</span>
@@ -162,12 +156,6 @@ try {
                         <span class="user-id">(<?php echo htmlspecialchars($user_identity); ?>)</span>
                     </div>
                     <div class="current-time" id="current-time"></div>
-                    <div class="notification-icon">
-                        <span class="icon">🔔</span>
-                        <?php if ($unread_notifications > 0): ?>
-                            <span class="notification-badge"><?php echo $unread_notifications; ?></span>
-                        <?php endif; ?>
-                    </div>
                 </div>
             </header>
 
@@ -348,7 +336,7 @@ try {
                 <div class="quick-actions">
                     <h3>Quick Actions</h3>
                     <div class="actions-grid">
-                        <a href="issues/report-issue.php" class="action-card">
+                        <a href="issues/" class="action-card">
                             <div class="action-icon">🚨</div>
                             <div class="action-text">
                                 <h4>Report Issue</h4>

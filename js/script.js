@@ -70,6 +70,62 @@ function showToast(message, type = "info") {
   }, 3000);
 }
 
+// Notification function for issue reporting and other modules
+function showNotification(message, type = "info", duration = 5000) {
+  // Use existing notification container or create one
+  let notificationContainer = document.getElementById("notification-container");
+
+  if (!notificationContainer) {
+    // Create container if it doesn't exist
+    notificationContainer = document.createElement("div");
+    notificationContainer.id = "notification-container";
+    notificationContainer.className = "notification-container";
+    document.body.appendChild(notificationContainer);
+  }
+
+  // Create notification element
+  const notification = document.createElement("div");
+  notification.className = `notification notification-${type}`;
+
+  // Map type to appropriate icon
+  const icons = {
+    success: "✅",
+    error: "❌",
+    warning: "⚠️",
+    info: "ℹ️",
+  };
+
+  const icon = icons[type] || icons.info;
+
+  notification.innerHTML = `
+    <div class="notification-content">
+      <span class="notification-icon">${icon}</span>
+      <span class="notification-message">${message}</span>
+      <button class="notification-close" onclick="this.parentElement.parentElement.remove()">×</button>
+    </div>
+  `;
+
+  // Add to container
+  notificationContainer.appendChild(notification);
+
+  // Animate in
+  setTimeout(() => {
+    notification.classList.add("show");
+  }, 10);
+
+  // Auto-hide after duration
+  if (duration > 0) {
+    setTimeout(() => {
+      notification.classList.remove("show");
+      setTimeout(() => {
+        if (notification.parentElement) {
+          notification.remove();
+        }
+      }, 300);
+    }, duration);
+  }
+}
+
 // Form Validation
 function validateForm(formId) {
   const form = document.getElementById(formId);
@@ -400,6 +456,7 @@ window.GeoCMS = {
   formatDate,
   showAlert,
   showToast,
+  showNotification,
   validateForm,
   validateEmail,
   validatePassword,

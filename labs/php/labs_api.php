@@ -277,7 +277,7 @@ try {
         // Report issue
         case 'report_issue':
             $lab_id = intval($_POST['lab_id'] ?? 0);
-            $computer_number = trim($_POST['computer_number'] ?? '');
+            $computer_serial_no = trim($_POST['computer_serial_no'] ?? '');
             $description = trim($_POST['description'] ?? '');
             
             if (empty($description)) {
@@ -285,13 +285,13 @@ try {
             }
             
             $stmt = $pdo->prepare("
-                INSERT INTO issue_reports (user_id, lab_id, computer_number, description, status)
+                INSERT INTO issue_reports (reported_by, lab_id, computer_serial_no, description, status)
                 VALUES (?, ?, ?, ?, 'pending')
             ");
             $stmt->execute([
                 $user_id,
                 $lab_id ?: null,
-                $computer_number ?: null,
+                $computer_serial_no ?: null,
                 $description
             ]);
             
@@ -341,16 +341,141 @@ try {
             $file = $_FILES['timetable_file'];
             $ext = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION));
             
-            if (!in_array($ext, ['csv', 'xlsx', 'xls'])) {
-                throw new Exception('Only CSV and Excel files are supported');
+            if (!in_array($ext, ['csv'])) {
+                throw new Exception('Only CSV files are supported');
             }
             
-            // For now, just acknowledge the upload
-            // In a real implementation, you would parse the file and insert into database
-            echo json_encode([
-                'success' => true,
-                'message' => 'Timetable uploaded successfully. Processing will be implemented.'
-            ]);
+            // Read and parse CSV file
+            $csv_data = file_get_contents($file['tmp_name']);
+            $lines = str_getcsv($csv_data, "\n");
+            
+            if (empty($lines)) {
+                throw new Exception('CSV file is empty');
+            }
+            
+            // Get header row
+            $header = str_getcsv(array_shift($lines));
+            $expected_columns = ['Day', 'Start Time', 'End Time', 'Subject', 'Lecturer', 'Batch'];
+            
+            // Validate header
+            foreach ($expected_columns as $col) {
+                if (!in_array($col, $header)) {
+                    throw new Exception("Missing required column: $col");
+                }
+            }
+            
+            $day_mapping = [
+                'monday' => 'monday',
+                'tuesday' => 'tuesday', 
+                'wednesday' => 'wednesday',
+                'thursday' => 'thursday',
+                'friday' => 'friday'
+            ];
+            
+            $processed_count = 0;
+            $error_count = 0;
+            $errors = [];
+            
+            // Begin transaction
+            $pdo->beginTransaction();
+            
+            try {
+                // Clear existing timetable for this lab
+                $stmt = $pdo->prepare("DELETE FROM lab_timetables WHERE lab_id = ?");
+                $stmt->execute([$lab_id]);
+                
+                foreach ($lines as $line_num => $line) {
+                    $data = str_getcsv($line);
+                    
+                    if (count($data) < count($expected_columns)) {
+                        $errors[] = "Line " . ($line_num + 2) . ": Insufficient columns";
+                        $error_count++;
+                        continue;
+                    }
+                    
+                    // Map data to columns
+                    $row_data = array_combine($header, $data);
+                    
+                    // Validate and process data
+                    $day = strtolower(trim($row_data['Day']));
+                    $start_time = trim($row_data['Start Time']);
+                    $end_time = trim($row_data['End Time']);
+                    $subject = trim($row_data['Subject']);
+                    $lecturer_name = trim($row_data['Lecturer']);
+                    $batch = trim($row_data['Batch']);
+                    $semester = trim($row_data['Semester'] ?? '');
+                    
+                    // Validate day
+                    if (!isset($day_mapping[$day])) {
+                        $errors[] = "Line " . ($line_num + 2) . ": Invalid day '$day'";
+                        $error_count++;
+                        continue;
+                    }
+                    
+                    // Validate time format
+                    if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $start_time)) {
+                        $errors[] = "Line " . ($line_num + 2) . ": Invalid start time format '$start_time'";
+                        $error_count++;
+                        continue;
+                    }
+                    
+                    if (!preg_match('/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/', $end_time)) {
+                        $errors[] = "Line " . ($line_num + 2) . ": Invalid end time format '$end_time'";
+                        $error_count++;
+                        continue;
+                    }
+                    
+                    // Find lecturer ID
+                    $lecturer_id = null;
+                    if (!empty($lecturer_name)) {
+                        $stmt = $pdo->prepare("SELECT id FROM users WHERE name LIKE ? AND role = 'lecturer' LIMIT 1");
+                        $stmt->execute(['%' . $lecturer_name . '%']);
+                        $lecturer = $stmt->fetch();
+                        if ($lecturer) {
+                            $lecturer_id = $lecturer['id'];
+                        }
+                    }
+                    
+                    // Insert timetable entry
+                    $stmt = $pdo->prepare("
+                        INSERT INTO lab_timetables (lab_id, day_of_week, start_time, end_time, lecturer_id, subject, semester, batch)
+                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    ");
+                    
+                    $stmt->execute([
+                        $lab_id,
+                        $day_mapping[$day],
+                        $start_time,
+                        $end_time,
+                        $lecturer_id,
+                        $subject,
+                        $semester,
+                        $batch
+                    ]);
+                    
+                    $processed_count++;
+                }
+                
+                // Commit transaction
+                $pdo->commit();
+                
+                $message = "Timetable uploaded successfully! Processed: $processed_count entries";
+                if ($error_count > 0) {
+                    $message .= ", Errors: $error_count";
+                }
+                
+                echo json_encode([
+                    'success' => true,
+                    'message' => $message,
+                    'processed' => $processed_count,
+                    'errors' => $error_count,
+                    'error_details' => array_slice($errors, 0, 10) // Limit error details
+                ]);
+                
+            } catch (Exception $e) {
+                $pdo->rollback();
+                throw new Exception('Database error during upload: ' . $e->getMessage());
+            }
             break;
 
         // Assign issue (Admin/Staff only)
@@ -385,11 +510,11 @@ try {
             $issue_id = intval($_POST['issue_id'] ?? 0);
             $status = $_POST['status'] ?? '';
             
-            if (!$issue_id || !in_array($status, ['pending', 'in_progress', 'fixed'])) {
+            if (!$issue_id || !in_array($status, ['pending', 'in_progress', 'resolved'])) {
                 throw new Exception('Invalid data');
             }
             
-            $resolved_at = $status === 'fixed' ? date('Y-m-d H:i:s') : null;
+            $resolved_at = $status === 'resolved' ? date('Y-m-d H:i:s') : null;
             
             $stmt = $pdo->prepare("
                 UPDATE issue_reports 
@@ -415,7 +540,7 @@ try {
                        assigned.name as assigned_to_name
                 FROM issue_reports ir
                 LEFT JOIN labs l ON ir.lab_id = l.id
-                JOIN users u ON ir.user_id = u.id
+                JOIN users u ON ir.reported_by = u.id
                 LEFT JOIN users assigned ON ir.assigned_to = assigned.id
                 WHERE ir.id = ?
             ");

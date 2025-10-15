@@ -37,7 +37,7 @@ try {
             COUNT(*) as total_issues,
             SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending_issues,
             SUM(CASE WHEN status = 'in_progress' THEN 1 ELSE 0 END) as in_progress_issues,
-            SUM(CASE WHEN status = 'fixed' THEN 1 ELSE 0 END) as fixed_issues
+            SUM(CASE WHEN status = 'resolved' THEN 1 ELSE 0 END) as fixed_issues
         FROM issue_reports
     ");
     $issue_stats = $stmt->fetch();
@@ -68,12 +68,12 @@ try {
                assigned.name as assigned_to_name
         FROM issue_reports ir
         LEFT JOIN labs l ON ir.lab_id = l.id
-        JOIN users u ON ir.user_id = u.id
+        JOIN users u ON ir.reported_by = u.id
         LEFT JOIN users assigned ON ir.assigned_to = assigned.id
         ORDER BY 
             CASE WHEN ir.status = 'pending' THEN 1 
                  WHEN ir.status = 'in_progress' THEN 2 ELSE 3 END,
-            ir.created_at DESC
+            ir.reported_date DESC
     ");
     $stmt->execute();
     $all_issues = $stmt->fetchAll();
@@ -121,6 +121,9 @@ try {
                         <p>Complete laboratory control and analytics</p>
                     </div>
                     <div class="page-actions">
+                        <a href="?page=timetable" class="btn btn-outline-success">
+                            📅 View Timetable
+                        </a>
                         <button class="btn btn-outline-secondary" onclick="exportReport()">
                             📊 Export Report
                         </button>
@@ -387,7 +390,7 @@ try {
                                         <tr data-status="<?php echo $issue['status']; ?>">
                                             <td><?php echo htmlspecialchars($issue['reporter_name']); ?></td>
                                             <td><?php echo htmlspecialchars($issue['lab_name'] ?? 'N/A'); ?></td>
-                                            <td><?php echo htmlspecialchars($issue['computer_number'] ?? 'N/A'); ?></td>
+                                            <td><?php echo htmlspecialchars($issue['computer_serial_no'] ?? 'N/A'); ?></td>
                                             <td>
                                                 <div class="issue-description" title="<?php echo htmlspecialchars($issue['description']); ?>">
                                                     <?php echo strlen($issue['description']) > 60 ? substr(htmlspecialchars($issue['description']), 0, 60) . '...' : htmlspecialchars($issue['description']); ?>
@@ -482,8 +485,9 @@ try {
                 <h3>Upload Lab Timetable</h3>
                 <button onclick="hideModal('upload-timetable-modal')">&times;</button>
             </div>
-            <form id="timetable-upload-form">
+            <form id="timetable-upload-form" action="php/labs_api.php" method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
+                    <input type="hidden" name="action" value="upload_timetable">
                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                     
                     <div class="form-group">
@@ -659,6 +663,54 @@ try {
     <script src="../js/script.js"></script>
     <script src="../js/labs.js"></script>
     <script src="../js/admin-labs.js"></script>
+    
+    <script>
+    // Handle timetable upload form
+    document.getElementById('timetable-upload-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        
+        // Show loading state
+        submitButton.disabled = true;
+        submitButton.textContent = 'Uploading...';
+        
+        fetch('php/labs_api.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert('✅ ' + data.message + '\n\nProcessed: ' + (data.processed || 0) + ' entries' + 
+                      (data.errors > 0 ? '\nErrors: ' + data.errors : ''));
+                
+                // Close modal and reset form
+                hideModal('upload-timetable-modal');
+                document.getElementById('timetable-upload-form').reset();
+                
+                // Optionally refresh the page to show updated data
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                alert('❌ Error: ' + (data.message || 'Upload failed'));
+            }
+        })
+        .catch(error => {
+            console.error('Upload error:', error);
+            alert('❌ Upload failed. Please check your file format and try again.');
+        })
+        .finally(() => {
+            // Reset button state
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+        });
+    });
+    </script>
 </body>
 </html>
 
@@ -677,7 +729,7 @@ function getIssueBadgeClass($status) {
     switch ($status) {
         case 'pending': return 'danger';
         case 'in_progress': return 'warning';
-        case 'fixed': return 'success';
+        case 'resolved': return 'success';
         default: return 'secondary';
     }
 }

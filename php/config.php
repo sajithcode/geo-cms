@@ -117,14 +117,6 @@ function formatDate($date, $format = 'Y-m-d H:i:s') {
     }
 }
 
-function getUnreadNotificationCount($user_id) {
-    global $pdo;
-    
-    $stmt = $pdo->prepare("SELECT COUNT(*) FROM notifications WHERE user_id = ? AND is_read = FALSE");
-    $stmt->execute([$user_id]);
-    return $stmt->fetchColumn();
-}
-
 // Set timezone
 date_default_timezone_set('Asia/Colombo');
 ?>

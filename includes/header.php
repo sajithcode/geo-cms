@@ -1,6 +1,5 @@
 <?php
 $page_title = $page_title ?? 'Dashboard';
-$unread_notifications = $unread_notifications ?? getUnreadNotificationCount($_SESSION['user_id']);
 ?>
 <header class="top-header">
     <div class="header-left">
@@ -15,11 +14,5 @@ $unread_notifications = $unread_notifications ?? getUnreadNotificationCount($_SE
             <span class="user-id">(<?php echo htmlspecialchars($_SESSION['user_identity']); ?>)</span>
         </div>
         <div class="current-time" id="current-time"></div>
-        <div class="notification-icon" onclick="toggleNotificationDropdown()">
-            <span class="icon">🔔</span>
-            <?php if ($unread_notifications > 0): ?>
-                <span class="notification-badge"><?php echo $unread_notifications; ?></span>
-            <?php endif; ?>
-        </div>
     </div>
 </header>
