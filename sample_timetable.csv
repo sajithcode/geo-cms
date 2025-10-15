@@ -1,0 +1,16 @@
+Day,Start Time,End Time,Subject,Lecturer,Batch,Semester
+Monday,08:00,10:00,Data Structures,Dr. John Smith,Batch 2023A,Semester 3
+Monday,10:00,12:00,Database Systems,Prof. Jane Doe,Batch 2023B,Semester 5
+Monday,14:00,16:00,Web Programming,Dr. Michael Brown,Batch 2023C,Semester 4
+Tuesday,08:00,10:00,Computer Networks,Dr. John Smith,Batch 2023A,Semester 4
+Tuesday,10:00,12:00,Software Engineering,Prof. Jane Doe,Batch 2023B,Semester 6
+Tuesday,13:00,15:00,Mobile App Development,Dr. Sarah Wilson,Batch 2023C,Semester 5
+Wednesday,09:00,11:00,Object Oriented Programming,Dr. John Smith,Batch 2023A,Semester 3
+Wednesday,11:00,13:00,Computer Graphics,Prof. Jane Doe,Batch 2023B,Semester 5
+Wednesday,14:00,16:00,Machine Learning,Dr. Michael Brown,Batch 2023C,Semester 6
+Thursday,08:00,10:00,System Analysis,Dr. Sarah Wilson,Batch 2023A,Semester 4
+Thursday,10:00,12:00,Network Security,Dr. John Smith,Batch 2023B,Semester 6
+Thursday,15:00,17:00,Project Management,Prof. Jane Doe,Batch 2023C,Semester 5
+Friday,09:00,11:00,Algorithm Design,Dr. Michael Brown,Batch 2023A,Semester 4
+Friday,13:00,15:00,Human Computer Interaction,Dr. Sarah Wilson,Batch 2023B,Semester 5
+Friday,15:00,17:00,Software Testing,Prof. Jane Doe,Batch 2023C,Semester 6

@@ -122,6 +122,9 @@ try {
                         <p>Reserve labs for practicals and report equipment issues</p>
                     </div>
                     <div class="page-actions">
+                        <a href="?page=timetable" class="btn btn-outline-success">
+                            📅 View Timetable
+                        </a>
                         <button class="btn btn-outline-secondary" onclick="showModal('issue-report-modal')">
                             🚨 Report Issue
                         </button>

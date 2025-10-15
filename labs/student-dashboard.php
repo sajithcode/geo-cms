@@ -95,6 +95,9 @@ try {
                         <p>View lab availability and manage your reservations</p>
                     </div>
                     <div class="page-actions">
+                        <a href="?page=timetable" class="btn btn-outline-success">
+                            📅 View Timetable
+                        </a>
                         <button class="btn btn-primary" onclick="showModal('lab-request-modal')">
                             📝 Request Lab Use
                         </button>

@@ -56,7 +56,7 @@ try {
             $stmt = $pdo->query("SELECT COUNT(*) as available_labs FROM labs WHERE status = 'available'");
             $stats['available_labs'] = $stmt->fetchColumn();
             
-            $stmt = $pdo->prepare("SELECT COUNT(*) as my_issues FROM issue_reports WHERE user_id = ? AND status != 'fixed'");
+            $stmt = $pdo->prepare("SELECT COUNT(*) as my_issues FROM issue_reports WHERE reported_by = ? AND status != 'resolved'");
             $stmt->execute([$user_id]);
             $stats['my_issues'] = $stmt->fetchColumn();
             break;
@@ -75,7 +75,7 @@ try {
             $stmt->execute([$user_id]);
             $stats['my_lab_requests'] = $stmt->fetchColumn();
             
-            $stmt = $pdo->prepare("SELECT COUNT(*) as my_reports FROM issue_reports WHERE user_id = ? AND status != 'fixed'");
+            $stmt = $pdo->prepare("SELECT COUNT(*) as my_reports FROM issue_reports WHERE reported_by = ? AND status != 'resolved'");
             $stmt->execute([$user_id]);
             $stats['my_reports'] = $stmt->fetchColumn();
             break;
@@ -83,7 +83,8 @@ try {
     
 } catch (PDOException $e) {
     error_log("Dashboard stats error: " . $e->getMessage());
-    $stats = [];
+    // Keep whatever stats we got, don't reset to empty array
+    // $stats = [];
 }
 ?>
 <!DOCTYPE html>
@@ -118,6 +119,10 @@ try {
                     <li><a href="labs/">
                         <span class="icon">🔬</span>
                         Labs
+                    </a></li>
+                    <li><a href="issues/">
+                        <span class="icon">🚨</span>
+                        Issues
                     </a></li>
                     <li><a href="profile.php">
                         <span class="icon">👤</span>
@@ -331,7 +336,7 @@ try {
                 <div class="quick-actions">
                     <h3>Quick Actions</h3>
                     <div class="actions-grid">
-                        <a href="issues/report-issue.php" class="action-card">
+                        <a href="issues/" class="action-card">
                             <div class="action-icon">🚨</div>
                             <div class="action-text">
                                 <h4>Report Issue</h4>

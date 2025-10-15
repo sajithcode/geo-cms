@@ -93,6 +93,9 @@ try {
                         <p>Manage laboratory reservations and monitor lab status</p>
                     </div>
                     <div class="page-actions">
+                        <a href="?page=timetable" class="btn btn-outline-success">
+                            📅 View Timetable
+                        </a>
                         <button class="btn btn-outline-primary" onclick="refreshData()">
                             🔄 Refresh
                         </button>

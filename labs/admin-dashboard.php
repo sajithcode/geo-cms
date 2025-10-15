@@ -121,6 +121,9 @@ try {
                         <p>Complete laboratory control and analytics</p>
                     </div>
                     <div class="page-actions">
+                        <a href="?page=timetable" class="btn btn-outline-success">
+                            📅 View Timetable
+                        </a>
                         <button class="btn btn-outline-secondary" onclick="exportReport()">
                             📊 Export Report
                         </button>
@@ -482,8 +485,9 @@ try {
                 <h3>Upload Lab Timetable</h3>
                 <button onclick="hideModal('upload-timetable-modal')">&times;</button>
             </div>
-            <form id="timetable-upload-form">
+            <form id="timetable-upload-form" action="php/labs_api.php" method="POST" enctype="multipart/form-data">
                 <div class="modal-body">
+                    <input type="hidden" name="action" value="upload_timetable">
                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
                     
                     <div class="form-group">
@@ -659,6 +663,54 @@ try {
     <script src="../js/script.js"></script>
     <script src="../js/labs.js"></script>
     <script src="../js/admin-labs.js"></script>
+    
+    <script>
+    // Handle timetable upload form
+    document.getElementById('timetable-upload-form').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const submitButton = this.querySelector('button[type="submit"]');
+        const originalText = submitButton.textContent;
+        
+        // Show loading state
+        submitButton.disabled = true;
+        submitButton.textContent = 'Uploading...';
+        
+        fetch('php/labs_api.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert('✅ ' + data.message + '\n\nProcessed: ' + (data.processed || 0) + ' entries' + 
+                      (data.errors > 0 ? '\nErrors: ' + data.errors : ''));
+                
+                // Close modal and reset form
+                hideModal('upload-timetable-modal');
+                document.getElementById('timetable-upload-form').reset();
+                
+                // Optionally refresh the page to show updated data
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                alert('❌ Error: ' + (data.message || 'Upload failed'));
+            }
+        })
+        .catch(error => {
+            console.error('Upload error:', error);
+            alert('❌ Upload failed. Please check your file format and try again.');
+        })
+        .finally(() => {
+            // Reset button state
+            submitButton.disabled = false;
+            submitButton.textContent = originalText;
+        });
+    });
+    </script>
 </body>
 </html>
 
