@@ -1,6 +1,5 @@
 <?php
 $current_page = basename($_SERVER['PHP_SELF']);
-$unread_notifications = getUnreadNotificationCount($_SESSION['user_id']);
 ?>
 <aside class="sidebar">
     <div class="sidebar-header">
@@ -29,13 +28,6 @@ $unread_notifications = getUnreadNotificationCount($_SESSION['user_id']);
             <li><a href="../profile.php" class="<?php echo ($current_page === 'profile.php') ? 'active' : ''; ?>">
                 <span class="icon">👤</span>
                 Profile
-            </a></li>
-            <li><a href="../notifications.php" class="<?php echo ($current_page === 'notifications.php') ? 'active' : ''; ?>">
-                <span class="icon">🔔</span>
-                Notifications
-                <?php if ($unread_notifications > 0): ?>
-                    <span class="badge badge-danger"><?php echo $unread_notifications; ?></span>
-                <?php endif; ?>
             </a></li>
             <?php if ($_SESSION['role'] === 'admin'): ?>
                 <li><a href="../admin/" class="<?php echo (strpos($_SERVER['REQUEST_URI'], '/admin/') !== false) ? 'active' : ''; ?>">

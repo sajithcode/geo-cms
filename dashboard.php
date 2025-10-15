@@ -81,13 +81,9 @@ try {
             break;
     }
     
-    // Get unread notifications count
-    $unread_notifications = getUnreadNotificationCount($user_id);
-    
 } catch (PDOException $e) {
     error_log("Dashboard stats error: " . $e->getMessage());
     $stats = [];
-    $unread_notifications = 0;
 }
 ?>
 <!DOCTYPE html>
@@ -127,13 +123,6 @@ try {
                         <span class="icon">👤</span>
                         Profile
                     </a></li>
-                    <li><a href="notifications.php">
-                        <span class="icon">🔔</span>
-                        Notifications
-                        <?php if ($unread_notifications > 0): ?>
-                            <span class="badge badge-danger"><?php echo $unread_notifications; ?></span>
-                        <?php endif; ?>
-                    </a></li>
                     <li><a href="settings.php">
                         <span class="icon">⚙️</span>
                         Settings
@@ -162,12 +151,6 @@ try {
                         <span class="user-id">(<?php echo htmlspecialchars($user_identity); ?>)</span>
                     </div>
                     <div class="current-time" id="current-time"></div>
-                    <div class="notification-icon">
-                        <span class="icon">🔔</span>
-                        <?php if ($unread_notifications > 0): ?>
-                            <span class="notification-badge"><?php echo $unread_notifications; ?></span>
-                        <?php endif; ?>
-                    </div>
                 </div>
             </header>
 
