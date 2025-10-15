@@ -44,9 +44,9 @@ try {
         SELECT ir.*, l.name as lab_name, u.name as reporter_name
         FROM issue_reports ir
         LEFT JOIN labs l ON ir.lab_id = l.id
-        JOIN users u ON ir.user_id = u.id
+        JOIN users u ON ir.reported_by = u.id
         WHERE ir.status IN ('pending', 'in_progress')
-        ORDER BY ir.created_at DESC
+        ORDER BY ir.reported_date DESC
         LIMIT 10
     ");
     $stmt->execute();
@@ -285,13 +285,13 @@ try {
                                             <strong><?php echo htmlspecialchars($issue['reporter_name']); ?></strong>
                                             reported an issue in
                                             <strong><?php echo htmlspecialchars($issue['lab_name'] ?? 'General'); ?></strong>
-                                            <?php if ($issue['computer_number']): ?>
-                                                - Computer <?php echo htmlspecialchars($issue['computer_number']); ?>
+                                            <?php if ($issue['computer_serial_no']): ?>
+                                                - Computer <?php echo htmlspecialchars($issue['computer_serial_no']); ?>
                                             <?php endif; ?>
                                         </p>
                                         <p class="text-muted"><?php echo htmlspecialchars($issue['description']); ?></p>
                                         <small class="text-muted">
-                                            <?php echo formatDate($issue['created_at'], 'DD/MM/YYYY HH:mm'); ?>
+                                            <?php echo formatDate($issue['reported_date'], 'DD/MM/YYYY HH:mm'); ?>
                                         </small>
                                     </div>
                                     <div class="issue-actions">

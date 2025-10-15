@@ -72,8 +72,8 @@ try {
         SELECT ir.*, l.name as lab_name
         FROM issue_reports ir
         LEFT JOIN labs l ON ir.lab_id = l.id
-        WHERE ir.user_id = ?
-        ORDER BY ir.created_at DESC
+        WHERE ir.reported_by = ?
+        ORDER BY ir.reported_date DESC
         LIMIT 5
     ");
     $stmt->execute([$user_id]);
@@ -404,13 +404,13 @@ try {
                                     <div class="issue-content">
                                         <p>
                                             <strong><?php echo htmlspecialchars($issue['lab_name'] ?? 'General'); ?></strong>
-                                            <?php if ($issue['computer_number']): ?>
-                                                - Computer <?php echo htmlspecialchars($issue['computer_number']); ?>
+                                            <?php if ($issue['computer_serial_no']): ?>
+                                                - Computer <?php echo htmlspecialchars($issue['computer_serial_no']); ?>
                                             <?php endif; ?>
                                         </p>
                                         <p class="text-muted"><?php echo htmlspecialchars($issue['description']); ?></p>
                                         <small class="text-muted">
-                                            <?php echo formatDate($issue['created_at'], 'DD/MM/YYYY HH:mm'); ?> 
+                                            <?php echo formatDate($issue['reported_date'], 'DD/MM/YYYY HH:mm'); ?> 
                                             • Status: <?php echo ucfirst(str_replace('_', ' ', $issue['status'])); ?>
                                         </small>
                                     </div>
@@ -509,9 +509,9 @@ try {
                     </div>
 
                     <div class="form-group">
-                        <label for="computer_number" class="form-label">Computer Number (if applicable)</label>
-                        <input type="text" id="computer_number" name="computer_number" class="form-control"
-                               placeholder="e.g., PC-01, PC-15">
+                        <label for="computer_serial_no" class="form-label">Computer Serial Number (if applicable)</label>
+                        <input type="text" id="computer_serial_no" name="computer_serial_no" class="form-control"
+                               placeholder="e.g., LAB01-PC01, LAB02-PC15">
                     </div>
 
                     <div class="form-group">
@@ -670,7 +670,7 @@ function getIssueBadgeClass($status) {
     switch ($status) {
         case 'pending': return 'danger';
         case 'in_progress': return 'warning';
-        case 'fixed': return 'success';
+        case 'resolved': return 'success';
         default: return 'secondary';
     }
 }

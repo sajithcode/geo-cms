@@ -277,7 +277,7 @@ try {
         // Report issue
         case 'report_issue':
             $lab_id = intval($_POST['lab_id'] ?? 0);
-            $computer_number = trim($_POST['computer_number'] ?? '');
+            $computer_serial_no = trim($_POST['computer_serial_no'] ?? '');
             $description = trim($_POST['description'] ?? '');
             
             if (empty($description)) {
@@ -285,13 +285,13 @@ try {
             }
             
             $stmt = $pdo->prepare("
-                INSERT INTO issue_reports (user_id, lab_id, computer_number, description, status)
+                INSERT INTO issue_reports (reported_by, lab_id, computer_serial_no, description, status)
                 VALUES (?, ?, ?, ?, 'pending')
             ");
             $stmt->execute([
                 $user_id,
                 $lab_id ?: null,
-                $computer_number ?: null,
+                $computer_serial_no ?: null,
                 $description
             ]);
             
@@ -385,11 +385,11 @@ try {
             $issue_id = intval($_POST['issue_id'] ?? 0);
             $status = $_POST['status'] ?? '';
             
-            if (!$issue_id || !in_array($status, ['pending', 'in_progress', 'fixed'])) {
+            if (!$issue_id || !in_array($status, ['pending', 'in_progress', 'resolved'])) {
                 throw new Exception('Invalid data');
             }
             
-            $resolved_at = $status === 'fixed' ? date('Y-m-d H:i:s') : null;
+            $resolved_at = $status === 'resolved' ? date('Y-m-d H:i:s') : null;
             
             $stmt = $pdo->prepare("
                 UPDATE issue_reports 
@@ -415,7 +415,7 @@ try {
                        assigned.name as assigned_to_name
                 FROM issue_reports ir
                 LEFT JOIN labs l ON ir.lab_id = l.id
-                JOIN users u ON ir.user_id = u.id
+                JOIN users u ON ir.reported_by = u.id
                 LEFT JOIN users assigned ON ir.assigned_to = assigned.id
                 WHERE ir.id = ?
             ");
