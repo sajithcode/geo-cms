@@ -1,5 +1,16 @@
 // Authentication JavaScript Functions
 
+// Helper functions (in case script.js is not loaded)
+function validateEmail(email) {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+function validatePassword(password) {
+  // At least 6 characters
+  return password.length >= 6;
+}
+
 document.addEventListener("DOMContentLoaded", function () {
   initializeAuthPage();
 });
@@ -79,6 +90,7 @@ function handleLoginSubmit(e) {
 
   // Validate form
   if (!validateLoginForm(form)) {
+    showAlert("Please fill in all required fields correctly.", "danger");
     return;
   }
 
@@ -90,7 +102,12 @@ function handleLoginSubmit(e) {
     method: "POST",
     body: formData,
   })
-    .then((response) => response.json())
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
     .then((data) => {
       if (data.success) {
         showAlert("Login successful! Redirecting...", "success");
@@ -103,7 +120,7 @@ function handleLoginSubmit(e) {
     })
     .catch((error) => {
       console.error("Login error:", error);
-      showAlert("An error occurred. Please try again.", "danger");
+      showAlert("An error occurred. Please check your connection and try again.", "danger");
     })
     .finally(() => {
       setLoading(submitBtn, false);
@@ -130,10 +147,17 @@ function handleRegisterSubmit(e) {
     method: "POST",
     body: formData,
   })
-    .then((response) => response.json())
+    .then((response) => {
+      if (!response.ok) {
+        throw new Error('Network response was not ok');
+      }
+      return response.json();
+    })
     .then((data) => {
       if (data.success) {
         showAlert("Registration successful! Please log in.", "success");
+        // Clear the form
+        form.reset();
         setTimeout(() => {
           showLoginForm();
         }, 1500);
@@ -146,7 +170,7 @@ function handleRegisterSubmit(e) {
     })
     .catch((error) => {
       console.error("Registration error:", error);
-      showAlert("An error occurred. Please try again.", "danger");
+      showAlert("An error occurred. Please check your connection and try again.", "danger");
     })
     .finally(() => {
       setLoading(submitBtn, false);

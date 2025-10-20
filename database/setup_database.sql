@@ -1,6 +1,11 @@
--- Geo CMS Database Schema
+-- Geo CMS Complete Database Setup
 -- Faculty of Geomatics - Sabaragamuwa University of Sri Lanka
+-- This file creates the entire database from scratch
 
+-- Drop database if it exists (optional - uncomment if you want to recreate)
+-- DROP DATABASE IF EXISTS geo_cms;
+
+-- Create database
 CREATE DATABASE IF NOT EXISTS geo_cms;
 USE geo_cms;
 
@@ -145,28 +150,34 @@ CREATE TABLE IF NOT EXISTS system_logs (
     FOREIGN KEY (user_id) REFERENCES users(id)
 );
 
--- Insert default data
+-- Insert default users
 INSERT INTO users (name, email, user_id, password, role) VALUES
 ('Admin User', 'admin@sab.ac.lk', 'ADMIN001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
 ('Dr. John Lecturer', 'lecturer@sab.ac.lk', 'LEC001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'lecturer'),
 ('Staff Member', 'staff@sab.ac.lk', 'STAFF001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'staff'),
 ('Student User', 'student@sab.ac.lk', 'STU001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student');
 
+-- Insert default labs
 INSERT INTO labs (name, description, capacity) VALUES
 ('Lab 01', 'Computer Lab 01 - GIS Software Lab', 30),
 ('Lab 02', 'Computer Lab 02 - Programming Lab', 25),
 ('Lab 03', 'Computer Lab 03 - Surveying Software Lab', 30),
 ('Lab 04', 'Computer Lab 04 - Research Lab', 20);
 
+-- Insert default inventory categories
 INSERT INTO inventory_categories (name, description) VALUES
 ('Computers', 'Desktop computers and workstations'),
 ('Surveying Equipment', 'Total stations, GPS devices, levels'),
 ('Software', 'Licensed software and applications'),
 ('Accessories', 'Cables, adapters, and other accessories');
 
+-- Insert default inventory items
 INSERT INTO inventory_items (name, category_id, description, quantity_total, quantity_available) VALUES
 ('Desktop Computer', 1, 'HP EliteDesk 800 G6', 50, 45),
 ('Total Station', 2, 'Leica TS16 Total Station', 5, 4),
 ('GPS Device', 2, 'Trimble R10 GNSS Receiver', 8, 6),
 ('ArcGIS License', 3, 'ArcGIS Desktop Professional License', 30, 25),
 ('USB Cable', 4, 'USB-A to USB-C Cable', 20, 18);
+
+-- Setup complete message
+SELECT 'Geo CMS Database Setup Complete!' as Status;

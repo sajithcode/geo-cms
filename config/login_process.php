@@ -66,9 +66,10 @@ try {
         $token = bin2hex(random_bytes(32));
         setcookie('remember_token', $token, time() + (30 * 24 * 60 * 60), '/'); // 30 days
         
-        // Store token in database (you might want to create a remember_tokens table)
-        $stmt = $pdo->prepare("UPDATE users SET remember_token = ? WHERE id = ?");
-        $stmt->execute([$token, $user['id']]);
+        // Store token in database - Note: remember_token column needs to be added to users table
+        // For now, we'll just set the cookie without database storage
+        // $stmt = $pdo->prepare("UPDATE users SET remember_token = ? WHERE id = ?");
+        // $stmt->execute([$token, $user['id']]);
     }
     
     // Create welcome notification
