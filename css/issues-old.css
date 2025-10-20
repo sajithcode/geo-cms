@@ -1,0 +1,456 @@
+/* Issues System Styles */
+
+/* Main Layout */
+.issues-container {
+  background-color: #f8f9fa;
+  min-height: 100vh;
+}
+
+/* Statistics Cards */
+.stats-card {
+  transition: transform 0.2s ease-in-out;
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.stats-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.stats-card .card-body {
+  padding: 1.5rem;
+}
+
+.stats-card h3 {
+  font-size: 2rem;
+  font-weight: bold;
+  margin: 0;
+}
+
+.stats-card h5 {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+/* Issue Form Styles */
+.issue-form-card {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.issue-form-card .card-header {
+  border-bottom: 2px solid #dee2e6;
+  font-weight: 600;
+}
+
+.form-label {
+  font-weight: 600;
+  color: #495057;
+}
+
+.form-text {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+/* Priority Badges */
+.badge.bg-priority-low {
+  background-color: #6c757d !important;
+}
+
+.badge.bg-priority-medium {
+  background-color: #0d6efd !important;
+}
+
+.badge.bg-priority-high {
+  background-color: #fd7e14 !important;
+}
+
+.badge.bg-priority-critical {
+  background-color: #dc3545 !important;
+}
+
+/* Status Badges */
+.badge.bg-status-pending {
+  background-color: #ffc107 !important;
+  color: #000;
+}
+
+.badge.bg-status-in-progress {
+  background-color: #0dcaf0 !important;
+}
+
+.badge.bg-status-fixed {
+  background-color: #198754 !important;
+}
+
+/* Category Badges */
+.badge.bg-category {
+  background-color: #6f42c1 !important;
+}
+
+/* Table Styles */
+.table-hover tbody tr:hover {
+  background-color: rgba(0, 0, 0, 0.075);
+  transition: background-color 0.15s ease-in-out;
+}
+
+.issue-row {
+  border-left: 4px solid transparent;
+}
+
+.issue-row.table-warning {
+  border-left-color: #ffc107;
+}
+
+.issue-row.table-info {
+  border-left-color: #0dcaf0;
+}
+
+.issue-row.table-success {
+  border-left-color: #198754;
+}
+
+.description-preview {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: help;
+}
+
+/* Modal Styles */
+.modal-content {
+  border: none;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+}
+
+.modal-header {
+  border-bottom: 2px solid #dee2e6;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+}
+
+.modal-header .btn-close {
+  filter: invert(1) grayscale(100%) brightness(200%);
+}
+
+.issue-details-table {
+  font-size: 0.9rem;
+}
+
+.issue-details-table td:first-child {
+  width: 150px;
+  font-weight: 600;
+  color: #495057;
+}
+
+/* Comments Section */
+.comments-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.comment-item {
+  transition: box-shadow 0.2s ease-in-out;
+}
+
+.comment-item:hover {
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.comment-type-badge {
+  font-size: 0.75rem;
+}
+
+/* Image Preview */
+.image-preview {
+  position: relative;
+  display: inline-block;
+}
+
+.image-preview img {
+  border-radius: 8px;
+  border: 2px solid #dee2e6;
+}
+
+.image-preview .remove-btn {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Filter Buttons */
+.filter-buttons .btn {
+  margin: 2px;
+  transition: all 0.2s ease-in-out;
+}
+
+.filter-buttons .btn.active {
+  transform: scale(1.05);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Loading States */
+.loading-spinner {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 200px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .stats-card h3 {
+    font-size: 1.5rem;
+  }
+
+  .description-preview {
+    max-width: 150px;
+  }
+
+  .btn-group-sm .btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .table-responsive {
+    font-size: 0.875rem;
+  }
+}
+
+@media (max-width: 576px) {
+  .modal-dialog {
+    margin: 10px;
+  }
+
+  .modal-dialog.modal-xl,
+  .modal-dialog.modal-lg {
+    max-width: none;
+    margin: 10px;
+  }
+
+  .stats-card .card-body {
+    padding: 1rem;
+  }
+
+  .btn-toolbar .btn {
+    margin-bottom: 0.5rem;
+  }
+}
+
+/* Animation Classes */
+.fade-in {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in {
+  animation: slideIn 0.3s ease-in-out;
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Custom Scrollbar for Comments */
+.comments-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.comments-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 3px;
+}
+
+.comments-list::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+/* Issue Priority Indicators */
+.priority-indicator {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  margin-right: 8px;
+}
+
+.priority-indicator.low {
+  background-color: #6c757d;
+}
+
+.priority-indicator.medium {
+  background-color: #0d6efd;
+}
+
+.priority-indicator.high {
+  background-color: #fd7e14;
+}
+
+.priority-indicator.critical {
+  background-color: #dc3545;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.1);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Status Progress Indicator */
+.status-progress {
+  display: flex;
+  align-items: center;
+  margin: 1rem 0;
+}
+
+.status-step {
+  flex: 1;
+  text-align: center;
+  position: relative;
+}
+
+.status-step::before {
+  content: "";
+  position: absolute;
+  top: 15px;
+  left: 50%;
+  right: -50%;
+  height: 2px;
+  background-color: #dee2e6;
+  z-index: 1;
+}
+
+.status-step:last-child::before {
+  display: none;
+}
+
+.status-step.active::before {
+  background-color: #198754;
+}
+
+.status-step .step-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #dee2e6;
+  color: #6c757d;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.status-step.active .step-icon {
+  background-color: #198754;
+  color: white;
+}
+
+.status-step.current .step-icon {
+  background-color: #0dcaf0;
+  color: white;
+}
+
+/* File Upload Area */
+.file-upload-area {
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  background-color: #f8f9fa;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.file-upload-area:hover {
+  border-color: #0d6efd;
+  background-color: #e7f1ff;
+}
+
+.file-upload-area.dragover {
+  border-color: #198754;
+  background-color: #d1e7dd;
+}
+
+.file-upload-icon {
+  font-size: 2rem;
+  color: #6c757d;
+  margin-bottom: 1rem;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .issues-container {
+    background-color: #212529;
+  }
+
+  .card {
+    background-color: #343a40;
+    border-color: #495057;
+  }
+
+  .table {
+    --bs-table-bg: #343a40;
+    --bs-table-color: #fff;
+  }
+
+  .modal-content {
+    background-color: #343a40;
+    color: #fff;
+  }
+
+  .form-control {
+    background-color: #495057;
+    border-color: #6c757d;
+    color: #fff;
+  }
+
+  .form-control:focus {
+    background-color: #495057;
+    border-color: #86b7fe;
+    color: #fff;
+  }
+}

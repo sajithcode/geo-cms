@@ -1,0 +1,766 @@
+// Labs Management JavaScript
+
+// Global variables
+let labRequestForm = null;
+let issueReportForm = null;
+
+// Initialize when document is ready
+document.addEventListener("DOMContentLoaded", function () {
+  initializeForms();
+  initializeFilters();
+  setupEventListeners();
+});
+
+function initializeForms() {
+  // Lab request form
+  labRequestForm = document.getElementById("lab-request-form");
+  if (labRequestForm) {
+    labRequestForm.addEventListener("submit", handleLabRequest);
+
+    // Lab selection change handler
+    const labSelect = document.getElementById("lab_id");
+    if (labSelect) {
+      labSelect.addEventListener("change", handleLabSelection);
+    }
+
+    // Date and time validation
+    const startTimeInput = document.getElementById("start_time");
+    const endTimeInput = document.getElementById("end_time");
+    if (startTimeInput && endTimeInput) {
+      startTimeInput.addEventListener("change", validateTimeRange);
+      endTimeInput.addEventListener("change", validateTimeRange);
+    }
+  }
+
+  // Issue report form
+  issueReportForm = document.getElementById("issue-report-form");
+  if (issueReportForm) {
+    issueReportForm.addEventListener("submit", handleIssueReport);
+  }
+
+  // Lab form (admin)
+  const labForm = document.getElementById("lab-form");
+  if (labForm) {
+    labForm.addEventListener("submit", handleLabManagement);
+  }
+
+  // Timetable upload form (admin)
+  const timetableForm = document.getElementById("timetable-upload-form");
+  if (timetableForm) {
+    timetableForm.addEventListener("submit", handleTimetableUpload);
+  }
+}
+
+function initializeFilters() {
+  // Status filter for reservations
+  const statusFilter = document.getElementById("status-filter");
+  if (statusFilter) {
+    statusFilter.addEventListener("change", filterReservations);
+  }
+}
+
+function setupEventListeners() {
+  // Refresh lab status button
+  const refreshBtn = document.querySelector('[onclick="refreshLabStatus()"]');
+  if (refreshBtn) {
+    refreshBtn.onclick = refreshLabStatus;
+  }
+}
+
+// Lab selection handler
+function handleLabSelection() {
+  const labSelect = document.getElementById("lab_id");
+  const selectedOption = labSelect.options[labSelect.selectedIndex];
+  const labDetails = document.getElementById("lab-details");
+
+  if (selectedOption.value) {
+    const capacity = selectedOption.dataset.capacity;
+    const description = selectedOption.dataset.description;
+
+    document.getElementById("lab-description").textContent = description;
+    document.getElementById("lab-capacity").textContent = capacity;
+
+    // Update max attendees
+    const attendeesInput = document.getElementById("expected_attendees");
+    if (attendeesInput) {
+      attendeesInput.max = capacity;
+    }
+
+    labDetails.style.display = "block";
+  } else {
+    labDetails.style.display = "none";
+  }
+}
+
+// Time range validation
+function validateTimeRange() {
+  const startTime = document.getElementById("start_time").value;
+  const endTime = document.getElementById("end_time").value;
+
+  if (startTime && endTime) {
+    if (startTime >= endTime) {
+      showNotification("End time must be after start time", "error");
+      document.getElementById("end_time").value = "";
+    }
+  }
+}
+
+// Lab request submission
+async function handleLabRequest(e) {
+  e.preventDefault();
+
+  const formData = new FormData(labRequestForm);
+  formData.append("action", "submit_reservation");
+
+  try {
+    showLoading("Submitting request...");
+
+    const response = await fetch("php/labs_api.php", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    hideLoading();
+
+    if (result.success) {
+      showNotification(result.message, "success");
+      hideModal("request-lab-modal");
+      labRequestForm.reset();
+      // Refresh the page to show updated data
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      showNotification(result.message, "error");
+    }
+  } catch (error) {
+    hideLoading();
+    showNotification("An error occurred while submitting the request", "error");
+    console.error("Lab request error:", error);
+  }
+}
+
+// Issue report submission
+async function handleIssueReport(e) {
+  e.preventDefault();
+
+  const formData = new FormData(issueReportForm);
+  formData.append("action", "report_issue");
+
+  try {
+    showLoading("Reporting issue...");
+
+    const response = await fetch("php/labs_api.php", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    hideLoading();
+
+    if (result.success) {
+      showNotification(result.message, "success");
+      hideModal("report-issue-modal");
+      issueReportForm.reset();
+      // Refresh the page to show updated data
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      showNotification(result.message, "error");
+    }
+  } catch (error) {
+    hideLoading();
+    showNotification("An error occurred while reporting the issue", "error");
+    console.error("Issue report error:", error);
+  }
+}
+
+// Lab management (admin)
+async function handleLabManagement(e) {
+  e.preventDefault();
+
+  const formData = new FormData(e.target);
+  formData.append("action", "manage_lab");
+
+  try {
+    // Show loading state
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    const originalText = submitBtn.textContent;
+    submitBtn.textContent = "Saving...";
+    submitBtn.disabled = true;
+
+    const response = await fetch("php/labs_api.php", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+
+    if (result.success) {
+      showAlert(result.message, "success");
+      hideModal("add-lab-modal");
+      // Refresh the page to show updated data
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      showAlert(result.message, "danger");
+    }
+    
+    // Reset button
+    submitBtn.textContent = originalText;
+    submitBtn.disabled = false;
+  } catch (error) {
+    // Reset button
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    submitBtn.textContent = "Save Lab";
+    submitBtn.disabled = false;
+    
+    showAlert("An error occurred while saving the lab", "danger");
+    console.error("Lab management error:", error);
+  }
+}
+
+// Timetable upload (admin)
+async function handleTimetableUpload(e) {
+  e.preventDefault();
+
+  const formData = new FormData(e.target);
+  formData.append("action", "upload_timetable");
+
+  try {
+    showLoading("Uploading and processing timetable...");
+
+    const response = await fetch("php/labs_api.php", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    hideLoading();
+
+    if (result.success) {
+      showNotification(result.message, "success");
+      hideModal("upload-timetable-modal");
+      // Refresh the page to show updated data
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      showNotification(result.message, "error");
+    }
+  } catch (error) {
+    hideLoading();
+    showNotification(
+      "An error occurred while uploading the timetable",
+      "error"
+    );
+    console.error("Timetable upload error:", error);
+  }
+}
+
+// View timetable
+async function viewTimetable(labId) {
+  try {
+    showLoading("Loading timetable...");
+
+    const response = await fetch(
+      `php/labs_api.php?action=get_timetable&lab_id=${labId}`
+    );
+    const result = await response.json();
+    hideLoading();
+
+    if (result.success) {
+      displayTimetable(result.lab, result.timetable, result.reservations);
+      showModal("timetable-modal");
+    } else {
+      showNotification(result.message, "error");
+    }
+  } catch (error) {
+    hideLoading();
+    showNotification("An error occurred while loading the timetable", "error");
+    console.error("Timetable error:", error);
+  }
+}
+
+// Display timetable in modal
+function displayTimetable(lab, timetable, reservations) {
+  document.getElementById(
+    "timetable-title"
+  ).textContent = `${lab.name} Timetable`;
+
+  const content = document.getElementById("timetable-content");
+
+  let html = `
+        <div class="lab-info mb-3">
+            <h4>${lab.name}</h4>
+            <p><strong>Description:</strong> ${
+              lab.description || "Not specified"
+            }</p>
+            <p><strong>Capacity:</strong> ${lab.capacity} students</p>
+        </div>
+    `;
+
+  if (timetable.length === 0) {
+    html += `
+            <div class="empty-state">
+                <div class="empty-icon">📅</div>
+                <h3>No Timetable Available</h3>
+                <p>No scheduled classes for this lab.</p>
+            </div>
+        `;
+  } else {
+    html += `
+            <div class="timetable-grid">
+                <h5>Regular Schedule</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Day</th>
+                                <th>Time</th>
+                                <th>Subject</th>
+                                <th>Semester</th>
+                                <th>Lecturer</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+
+    timetable.forEach((item) => {
+      html += `
+                <tr>
+                    <td>${
+                      item.day_of_week.charAt(0).toUpperCase() +
+                      item.day_of_week.slice(1)
+                    }</td>
+                    <td>${formatTime(item.start_time)} - ${formatTime(
+        item.end_time
+      )}</td>
+                    <td><strong>${item.subject || "-"}</strong></td>
+                    <td>${item.semester || "-"}</td>
+                    <td>${item.lecturer_name || "-"}</td>
+                </tr>
+            `;
+    });
+
+    html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+  }
+
+  if (reservations.length > 0) {
+    html += `
+            <div class="reservations-section mt-4">
+                <h5>Upcoming Reservations</h5>
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Time</th>
+                                <th>Reserved by</th>
+                                <th>Purpose</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+        `;
+
+    reservations.forEach((reservation) => {
+      html += `
+                <tr>
+                    <td>${formatDate(
+                      reservation.reservation_date,
+                      "DD/MM/YYYY"
+                    )}</td>
+                    <td>${formatTime(reservation.start_time)} - ${formatTime(
+        reservation.end_time
+      )}</td>
+                    <td>${reservation.requester_name}</td>
+                    <td>${reservation.purpose}</td>
+                </tr>
+            `;
+    });
+
+    html += `
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        `;
+  }
+
+  content.innerHTML = html;
+}
+
+// View reservation details
+async function viewReservationDetails(reservationId) {
+  try {
+    showLoading("Loading reservation details...");
+
+    const response = await fetch(
+      `php/labs_api.php?action=get_reservation_details&reservation_id=${reservationId}`
+    );
+    const result = await response.json();
+    hideLoading();
+
+    if (result.success) {
+      displayReservationDetails(result.reservation);
+      showModal("reservation-details-modal");
+    } else {
+      showNotification(result.message, "error");
+    }
+  } catch (error) {
+    hideLoading();
+    showNotification(
+      "An error occurred while loading reservation details",
+      "error"
+    );
+    console.error("Reservation details error:", error);
+  }
+}
+
+// Display reservation details in modal
+function displayReservationDetails(reservation) {
+  const content = document.getElementById("reservation-details-content");
+
+  const html = `
+        <div class="reservation-info">
+            <div class="row">
+                <div class="col-6">
+                    <p><strong>Lab:</strong> ${reservation.lab_name}</p>
+                    <p><strong>Date:</strong> ${formatDate(
+                      reservation.reservation_date,
+                      "DD/MM/YYYY"
+                    )}</p>
+                    <p><strong>Time:</strong> ${formatTime(
+                      reservation.start_time
+                    )} - ${formatTime(reservation.end_time)}</p>
+                </div>
+                <div class="col-6">
+                    <p><strong>Requester:</strong> ${
+                      reservation.requester_name
+                    }</p>
+                    <p><strong>Student ID:</strong> ${
+                      reservation.requester_id
+                    }</p>
+                    <p><strong>Email:</strong> ${
+                      reservation.requester_email
+                    }</p>
+                    <p><strong>Status:</strong> <span class="badge badge-${getStatusBadgeClass(
+                      reservation.status
+                    )}">${
+    reservation.status.charAt(0).toUpperCase() + reservation.status.slice(1)
+  }</span></p>
+                </div>
+            </div>
+            
+            <div class="purpose-section mt-3">
+                <h6>Purpose:</h6>
+                <p>${reservation.purpose}</p>
+            </div>
+            
+            <div class="dates-section mt-3">
+                <p><strong>Requested:</strong> ${formatDate(
+                  reservation.request_date,
+                  "DD/MM/YYYY HH:mm"
+                )}</p>
+                ${
+                  reservation.approved_date
+                    ? `<p><strong>Processed:</strong> ${formatDate(
+                        reservation.approved_date,
+                        "DD/MM/YYYY HH:mm"
+                      )}</p>`
+                    : ""
+                }
+                ${
+                  reservation.approved_by_name
+                    ? `<p><strong>Processed by:</strong> ${reservation.approved_by_name}</p>`
+                    : ""
+                }
+            </div>
+            
+            ${
+              reservation.notes
+                ? `
+                <div class="notes-section mt-3">
+                    <h6>Notes:</h6>
+                    <p>${reservation.notes}</p>
+                </div>
+            `
+                : ""
+            }
+        </div>
+    `;
+
+  content.innerHTML = html;
+}
+
+// Cancel reservation
+async function cancelReservation(reservationId) {
+  if (!confirm("Are you sure you want to cancel this reservation?")) {
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("action", "cancel_reservation");
+  formData.append("reservation_id", reservationId);
+  formData.append("csrf_token", getCSRFToken());
+
+  try {
+    showLoading("Cancelling reservation...");
+
+    const response = await fetch("php/labs_api.php", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    hideLoading();
+
+    if (result.success) {
+      showNotification(result.message, "success");
+      // Refresh the page to show updated data
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      showNotification(result.message, "error");
+    }
+  } catch (error) {
+    hideLoading();
+    showNotification(
+      "An error occurred while cancelling the reservation",
+      "error"
+    );
+    console.error("Cancel reservation error:", error);
+  }
+}
+
+// Approve reservation (admin/staff)
+async function approveReservation(reservationId) {
+  const notes = prompt("Add approval notes (optional):");
+  if (notes === null) return; // User cancelled
+
+  const formData = new FormData();
+  formData.append("action", "approve_reservation");
+  formData.append("reservation_id", reservationId);
+  formData.append("notes", notes);
+  formData.append("csrf_token", getCSRFToken());
+
+  try {
+    showLoading("Approving reservation...");
+
+    const response = await fetch("php/labs_api.php", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    hideLoading();
+
+    if (result.success) {
+      showNotification(result.message, "success");
+      // Refresh the page to show updated data
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      showNotification(result.message, "error");
+    }
+  } catch (error) {
+    hideLoading();
+    showNotification(
+      "An error occurred while approving the reservation",
+      "error"
+    );
+    console.error("Approve reservation error:", error);
+  }
+}
+
+// Reject reservation (admin/staff)
+async function rejectReservation(reservationId) {
+  const reason = prompt("Enter rejection reason:");
+  if (!reason || reason.trim() === "") {
+    showNotification("Rejection reason is required", "error");
+    return;
+  }
+
+  const formData = new FormData();
+  formData.append("action", "reject_reservation");
+  formData.append("reservation_id", reservationId);
+  formData.append("reason", reason.trim());
+  formData.append("csrf_token", getCSRFToken());
+
+  try {
+    showLoading("Rejecting reservation...");
+
+    const response = await fetch("php/labs_api.php", {
+      method: "POST",
+      body: formData,
+    });
+
+    const result = await response.json();
+    hideLoading();
+
+    if (result.success) {
+      showNotification(result.message, "success");
+      // Refresh the page to show updated data
+      setTimeout(() => location.reload(), 1500);
+    } else {
+      showNotification(result.message, "error");
+    }
+  } catch (error) {
+    hideLoading();
+    showNotification(
+      "An error occurred while rejecting the reservation",
+      "error"
+    );
+    console.error("Reject reservation error:", error);
+  }
+}
+
+// Refresh lab status
+async function refreshLabStatus() {
+  try {
+    showLoading("Refreshing lab status...");
+
+    const response = await fetch("php/labs_api.php?action=refresh_lab_status");
+    const result = await response.json();
+    hideLoading();
+
+    if (result.success) {
+      showNotification("Lab status refreshed", "success");
+      // Refresh the page to show updated data
+      setTimeout(() => location.reload(), 1000);
+    } else {
+      showNotification(result.message, "error");
+    }
+  } catch (error) {
+    hideLoading();
+    showNotification("An error occurred while refreshing lab status", "error");
+    console.error("Refresh status error:", error);
+  }
+}
+
+// Filter reservations
+function filterReservations() {
+  const statusFilter = document.getElementById("status-filter");
+  const selectedStatus = statusFilter.value;
+  const items = document.querySelectorAll(".reservation-item, tr[data-status]");
+
+  items.forEach((item) => {
+    if (selectedStatus === "" || item.dataset.status === selectedStatus) {
+      item.style.display = "";
+    } else {
+      item.style.display = "none";
+    }
+  });
+}
+
+// Request lab use (from lab card)
+function requestLabUse(labId) {
+  const labSelect = document.getElementById("lab_id");
+  if (labSelect) {
+    labSelect.value = labId;
+    handleLabSelection();
+  }
+  showModal("request-lab-modal");
+}
+
+// Request lab reservation (lecturer version)
+function requestLabReservation(labId) {
+  requestLabUse(labId); // Same functionality
+}
+
+// Report issue for specific lab
+function reportIssue(labId) {
+  const labSelect = document.getElementById("issue_lab_id");
+  if (labSelect) {
+    labSelect.value = labId;
+  }
+  showModal("report-issue-modal");
+}
+
+// View equipment status (placeholder)
+function viewEquipmentStatus(labId) {
+  showNotification("Equipment status feature coming soon", "info");
+}
+
+// Utility functions
+function formatTime(timeString) {
+  const time = new Date(`1970-01-01T${timeString}`);
+  return time.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+}
+
+function getStatusBadgeClass(status) {
+  const classes = {
+    pending: "warning",
+    approved: "success",
+    rejected: "danger",
+    cancelled: "secondary",
+    completed: "success",
+  };
+  return classes[status] || "secondary";
+}
+
+// Admin-specific functions
+function editLab(labId) {
+  // Implementation for editing lab details
+  showNotification("Edit lab feature coming soon", "info");
+}
+
+function manageTimetable(labId) {
+  viewTimetable(labId);
+}
+
+function changeLabStatus(labId) {
+  // Implementation for changing lab status
+  showNotification("Change lab status feature coming soon", "info");
+}
+
+function viewPendingRequests(labId) {
+  // Implementation for viewing pending requests for specific lab
+  showNotification("View pending requests feature coming soon", "info");
+}
+
+function approveAllVisible() {
+  // Implementation for approving all visible pending requests
+  showNotification("Bulk approve feature coming soon", "info");
+}
+
+function toggleAllPending() {
+  const selectAll = document.getElementById("select-all-pending");
+  const checkboxes = document.querySelectorAll(".pending-checkbox");
+
+  checkboxes.forEach((checkbox) => {
+    checkbox.checked = selectAll.checked;
+  });
+}
+
+function viewAllIssues() {
+  // Implementation for viewing all issues
+  showNotification("View all issues feature coming soon", "info");
+}
+
+function assignIssue(issueId) {
+  // Implementation for assigning issue
+  showNotification("Assign issue feature coming soon", "info");
+}
+
+function updateIssueStatus(issueId) {
+  // Implementation for updating issue status
+  showNotification("Update issue status feature coming soon", "info");
+}
+
+function viewIssueDetails(issueId) {
+  // Implementation for viewing issue details
+  showNotification("View issue details feature coming soon", "info");
+}
+
+function generateReport() {
+  // Implementation for generating reports
+  showNotification("Generate report feature coming soon", "info");
+}
+
+function exportReport() {
+  // Implementation for exporting reports
+  showNotification("Export report feature coming soon", "info");
+}
