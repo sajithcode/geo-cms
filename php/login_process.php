@@ -1,7 +1,16 @@
 <?php
+// Enable error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Don't display errors, log them
+ini_set('log_errors', 1);
+
 require_once 'config.php';
 
+// Set JSON header
 header('Content-Type: application/json');
+header('Access-Control-Allow-Origin: *');
+header('Access-Control-Allow-Methods: POST');
+header('Access-Control-Allow-Headers: Content-Type');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -66,9 +75,10 @@ try {
         $token = bin2hex(random_bytes(32));
         setcookie('remember_token', $token, time() + (30 * 24 * 60 * 60), '/'); // 30 days
         
-        // Store token in database (you might want to create a remember_tokens table)
-        $stmt = $pdo->prepare("UPDATE users SET remember_token = ? WHERE id = ?");
-        $stmt->execute([$token, $user['id']]);
+        // Store token in database - Note: remember_token column needs to be added to users table
+        // For now, we'll just set the cookie without database storage
+        // $stmt = $pdo->prepare("UPDATE users SET remember_token = ? WHERE id = ?");
+        // $stmt->execute([$token, $user['id']]);
     }
     
     // Create welcome notification
