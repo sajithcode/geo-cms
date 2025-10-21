@@ -41,9 +41,9 @@
 }
 
 .item-table-image:hover {
-  border-color: #007bff;
+  border-color: #dc2626;
   transform: scale(1.05);
-  box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.3);
 }
 
 .clickable-image {
@@ -83,7 +83,7 @@
 }
 
 .activity-item-image:hover {
-  border-color: #007bff;
+  border-color: #dc2626;
   transform: scale(1.1);
 }
 
@@ -106,11 +106,11 @@
 }
 
 .image-upload-container:hover {
-  border-color: #007bff;
+  border-color: #dc2626;
 }
 
 .image-upload-container.drag-over {
-  border-color: #007bff;
+  border-color: #dc2626;
   background-color: #f8f9fa;
 }
 
