@@ -7,10 +7,10 @@
 }
 
 :root {
-  /* Primary Colors */
-  --primary: #2563eb;
-  --primary-light: #3b82f6;
-  --primary-dark: #1d4ed8;
+  /* Primary Colors - Red Theme */
+  --primary: #dc2626;
+  --primary-light: #ef4444;
+  --primary-dark: #b91c1c;
 
   /* Secondary Colors */
   --secondary: #64748b;

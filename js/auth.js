@@ -366,10 +366,18 @@ function validatePasswordMatch() {
 function checkPasswordStrength() {
   const password = document.getElementById("reg_password");
   const strengthIndicator = document.getElementById("password-strength");
+  // If password field is empty, remove the indicator
+  if (!password.value) {
+    if (strengthIndicator) {
+      strengthIndicator.remove();
+    }
+    return;
+  }
 
-  if (!strengthIndicator) {
-    // Create strength indicator
-    const indicator = document.createElement("div");
+  // Ensure the strength indicator exists
+  let indicator = document.getElementById("password-strength");
+  if (!indicator) {
+    indicator = document.createElement("div");
     indicator.id = "password-strength";
     indicator.className = "password-strength";
     indicator.innerHTML = `
@@ -382,29 +390,21 @@ function checkPasswordStrength() {
   }
 
   const strength = calculatePasswordStrength(password.value);
-  const indicator = document.getElementById("password-strength");
   const levelText = indicator.querySelector(".strength-level");
   const strengthBar = indicator.querySelector(".strength-bar");
 
-  // Remove previous classes
-  strengthBar.classList.remove(
-    "strength-weak",
-    "strength-medium",
-    "strength-strong"
-  );
+  // Remove previous strength classes from the indicator
+  indicator.classList.remove("strength-weak", "strength-medium", "strength-strong");
 
   if (strength < 3) {
     levelText.textContent = "Weak";
-    levelText.style.color = "var(--danger)";
-    strengthBar.classList.add("strength-weak");
+    indicator.classList.add("strength-weak");
   } else if (strength < 5) {
     levelText.textContent = "Medium";
-    levelText.style.color = "var(--warning)";
-    strengthBar.classList.add("strength-medium");
+    indicator.classList.add("strength-medium");
   } else {
     levelText.textContent = "Strong";
-    levelText.style.color = "var(--success)";
-    strengthBar.classList.add("strength-strong");
+    indicator.classList.add("strength-strong");
   }
 }
 
