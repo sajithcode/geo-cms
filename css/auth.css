@@ -34,9 +34,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  /* Geomatics/Surveying themed background image */
-  background: 
-    linear-gradient(135deg, rgba(220, 38, 38, 0.75) 0%, rgba(185, 28, 28, 0.65) 100%),
+  /* Geomatics/Surveying themed background image with stronger dark overlay */
+  background:
+    /* subtle vignette to darken edges */
+    radial-gradient(ellipse at center, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.45) 100%),
+    /* warm red wash to keep brand color but darker */
+    linear-gradient(135deg, rgba(220, 38, 38, 0.35) 0%, rgba(185, 28, 28, 0.28) 100%),
     url('../images/bg_image.jpg') center center/cover no-repeat fixed;
   background-color: var(--auth-bg-light);
   position: relative;
@@ -53,9 +56,20 @@
   left: 0;
   width: 100%;
   height: 100%;
-  background: rgba(0, 0, 0, 0.2);
+  /* stronger universal dark overlay to make the page darker while keeping the image visible */
+  background: rgba(0, 0, 0, 0.55);
   z-index: 0;
   pointer-events: none;
+}
+
+/* Extra subtle vignette layer for focus on center card */
+.auth-body::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background: radial-gradient(ellipse at center, rgba(0,0,0,0.0) 0%, rgba(0,0,0,0.15) 55%, rgba(0,0,0,0.35) 100%);
 }
 
 /* Container */
