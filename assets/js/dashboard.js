@@ -180,33 +180,29 @@ function displayNotificationsDropdown(notifications) {
         </div>
         <div class="notification-list">
             ${notifications
-              .map(
-                (notification) => `
-                <div class="notification-item ${
-                  notification.is_read ? "" : "unread"
-                }" 
+      .map(
+        (notification) => `
+                <div class="notification-item ${notification.is_read ? "" : "unread"
+          }" 
                      onclick="markNotificationAsRead(${notification.id})">
                     <div class="notification-content">
-                        <div class="notification-title">${
-                          notification.title
-                        }</div>
-                        <div class="notification-message">${
-                          notification.message
-                        }</div>
+                        <div class="notification-title">${notification.title
+          }</div>
+                        <div class="notification-message">${notification.message
+          }</div>
                         <div class="notification-time">${formatDate(
-                          notification.created_at,
-                          "DD/MM/YYYY HH:mm"
-                        )}</div>
+            notification.created_at,
+            "DD/MM/YYYY HH:mm"
+          )}</div>
                     </div>
-                    ${
-                      !notification.is_read
-                        ? '<div class="notification-dot"></div>'
-                        : ""
-                    }
+                    ${!notification.is_read
+            ? '<div class="notification-dot"></div>'
+            : ""
+          }
                 </div>
             `
-              )
-              .join("")}
+      )
+      .join("")}
         </div>
         <div class="notification-footer">
             <a href="notifications.php" class="btn btn-sm btn-primary">View All</a>
@@ -305,7 +301,7 @@ function initializeTooltips() {
 
 // Quick action functions
 function quickBorrowRequest() {
-  window.location.href = "inventory/";
+  window.location.href = "store/";
 }
 
 function quickLabRequest() {

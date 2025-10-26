@@ -69,8 +69,8 @@ $required_tables = [
     'labs',
     'lab_reservations',
     'lab_timetables',
-    'inventory_categories',
-    'inventory_items',
+    'store_categories',
+    'store_items',
     'borrow_requests',
     'issue_reports',
     'notifications',
@@ -99,7 +99,7 @@ if (empty($missing_tables)) {
 echo "<h2>Test 5: File Permissions</h2>";
 $upload_dirs = [
     'uploads/',
-    'uploads/inventory/',
+    'uploads/store/',
     'uploads/issues/'
 ];
 

@@ -282,9 +282,9 @@ $page_title = 'Admin Panel';
                                 <span>🔬</span>
                                 Labs Management
                             </a>
-                            <a href="../inventory/admin-dashboard.php" class="btn btn-primary">
+                            <a href="../store/admin-dashboard.php" class="btn btn-primary">
                                 <span>📦</span>
-                                Inventory Management
+                                Store Management
                             </a>
                             <a href="../issues/" class="btn btn-secondary">
                                 <span>🚨</span>
@@ -309,7 +309,7 @@ $page_title = 'Admin Panel';
                         This admin panel is currently under development. Most administrative functions can be accessed through the existing module dashboards:
                         <ul style="margin: 10px 0 0 20px;">
                             <li>Labs Management: <a href="../labs/admin-dashboard.php" style="color: #0ea5e9;">Labs Admin Dashboard</a></li>
-                            <li>Inventory Management: <a href="../inventory/admin-dashboard.php" style="color: #0ea5e9;">Inventory Admin Dashboard</a></li>
+                            <li>Store Management: <a href="../store/admin-dashboard.php" style="color: #0ea5e9;">Store Admin Dashboard</a></li>
                             <li>User Profile: <a href="../profile.php" style="color: #0ea5e9;">Profile Page</a></li>
                         </ul>
                     </div>

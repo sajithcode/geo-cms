@@ -75,7 +75,7 @@ try {
     <title>Issue Reporting - <?php echo APP_NAME; ?></title>
     <link rel="stylesheet" href="../css/style.css">
     <link rel="stylesheet" href="../css/dashboard.css">
-    <link rel="stylesheet" href="../css/inventory.css">
+    <link rel="stylesheet" href="../css/store.css">
     <meta name="csrf-token" content="<?php echo generateCSRFToken(); ?>">
 </head>
 <body>

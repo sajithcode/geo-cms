@@ -17,16 +17,16 @@ CREATE TABLE IF NOT EXISTS users (
     is_active BOOLEAN DEFAULT TRUE
 );
 
--- Inventory categories
-CREATE TABLE IF NOT EXISTS inventory_categories (
+-- Store categories
+CREATE TABLE IF NOT EXISTS store_categories (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Inventory items
-CREATE TABLE IF NOT EXISTS inventory_items (
+-- Store items
+CREATE TABLE IF NOT EXISTS store_items (
     id INT PRIMARY KEY AUTO_INCREMENT,
     name VARCHAR(100) NOT NULL,
     category_id INT,
@@ -37,7 +37,7 @@ CREATE TABLE IF NOT EXISTS inventory_items (
     quantity_maintenance INT NOT NULL DEFAULT 0,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    FOREIGN KEY (category_id) REFERENCES inventory_categories(id)
+    FOREIGN KEY (category_id) REFERENCES store_categories(id)
 );
 
 -- Borrow requests
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS borrow_requests (
     returned_date TIMESTAMP NULL,
     notes TEXT,
     FOREIGN KEY (user_id) REFERENCES users(id),
-    FOREIGN KEY (item_id) REFERENCES inventory_items(id),
+    FOREIGN KEY (item_id) REFERENCES store_items(id),
     FOREIGN KEY (approved_by) REFERENCES users(id)
 );
 
@@ -158,13 +158,13 @@ INSERT INTO labs (name, description, capacity) VALUES
 ('Lab 03', 'Computer Lab 03 - Surveying Software Lab', 30),
 ('Lab 04', 'Computer Lab 04 - Research Lab', 20);
 
-INSERT INTO inventory_categories (name, description) VALUES
+INSERT INTO store_categories (name, description) VALUES
 ('Computers', 'Desktop computers and workstations'),
 ('Surveying Equipment', 'Total stations, GPS devices, levels'),
 ('Software', 'Licensed software and applications'),
 ('Accessories', 'Cables, adapters, and other accessories');
 
-INSERT INTO inventory_items (name, category_id, description, quantity_total, quantity_available) VALUES
+INSERT INTO store_items (name, category_id, description, quantity_total, quantity_available) VALUES
 ('Desktop Computer', 1, 'HP EliteDesk 800 G6', 50, 45),
 ('Total Station', 2, 'Leica TS16 Total Station', 5, 4),
 ('GPS Device', 2, 'Trimble R10 GNSS Receiver', 8, 6),

@@ -37,10 +37,10 @@ if ($geo_cms_pos !== false) {
                 <span class="icon">🏠</span>
                 Dashboard
             </a></li>
-            <li><a href="<?php echo $base_path; ?>inventory/" class="<?php echo (strpos($request_uri, '/inventory/') !== false) ? 'active' : ''; ?>">
-                <span class="icon">📦</span>
-                Inventory
-            </a></li>
+            <li><a href="<?php echo $base_path; ?>store/" class="<?php echo (strpos($request_uri, '/store/') !== false) ? 'active' : ''; ?>">
+                    <span class="icon">📦</span>
+                    Store
+                </a></li>
             <li><a href="<?php echo $base_path; ?>labs/" class="<?php echo (strpos($request_uri, '/labs/') !== false) ? 'active' : ''; ?>">
                 <span class="icon">🔬</span>
                 Labs

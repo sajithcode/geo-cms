@@ -29,7 +29,7 @@ try {
             $stmt = $pdo->query("SELECT COUNT(*) as total_labs FROM labs");
             $user_stats['total_labs'] = $stmt->fetchColumn();
             
-            $stmt = $pdo->query("SELECT COUNT(*) as total_items FROM inventory_items");
+            $stmt = $pdo->query("SELECT COUNT(*) as total_items FROM store_items");
             $user_stats['total_items'] = $stmt->fetchColumn();
             break;
             
@@ -544,7 +544,7 @@ $page_title = 'Profile';
                                 </div>
                                 <div class="stat-card">
                                     <div class="stat-value"><?php echo $user_stats['total_items'] ?? 0; ?></div>
-                                    <div class="stat-label">Inventory Items</div>
+                                    <div class="stat-label">Store Items</div>
                                 </div>
                             <?php elseif ($user_role === 'lecturer'): ?>
                                 <div class="stat-card">
@@ -570,7 +570,7 @@ $page_title = 'Profile';
                                 </div>
                                 <div class="stat-card">
                                     <div class="stat-value"><?php echo $user_stats['inventory_requests'] ?? 0; ?></div>
-                                    <div class="stat-label">Inventory Requests</div>
+                                    <div class="stat-label">Store Requests</div>
                                 </div>
                             <?php elseif ($user_role === 'student'): ?>
                                 <div class="stat-card">
