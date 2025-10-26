@@ -285,10 +285,11 @@ try {
             }
             
             $stmt = $pdo->prepare("
-                INSERT INTO issue_reports (reported_by, lab_id, computer_serial_no, description, status)
-                VALUES (?, ?, ?, ?, 'pending')
+                INSERT INTO issue_reports (user_id, reported_by, lab_id, computer_serial_no, description, status)
+                VALUES (?, ?, ?, ?, ?, 'pending')
             ");
             $stmt->execute([
+                $user_id,
                 $user_id,
                 $lab_id ?: null,
                 $computer_serial_no ?: null,

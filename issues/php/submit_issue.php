@@ -89,13 +89,14 @@ try {
     // Insert issue report
     $stmt = $pdo->prepare("
         INSERT INTO issue_reports (
-            report_id, computer_serial_no, lab_id, issue_category, 
+            report_id, user_id, computer_serial_no, lab_id, issue_category, 
             description, file_path, status, reported_by
-        ) VALUES (?, ?, ?, ?, ?, ?, 'pending', ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'pending', ?)
     ");
     
     $stmt->execute([
         $report_id,
+        $user_id,
         $computer_serial_no ?: null,
         $lab_id,
         $issue_category,
