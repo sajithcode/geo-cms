@@ -711,6 +711,13 @@
   color: var(--white);
 }
 
+/* Lighter available badge for 'available quantity' display */
+.badge-available {
+  background: #d1fae5; /* light green */
+  color: #065f46; /* dark green text for contrast */
+  border: 1px solid #86efac;
+}
+
 .badge-danger {
   background: var(--danger);
   color: var(--white);
@@ -979,4 +986,54 @@
 
 .content-section:nth-child(4) {
   animation-delay: 0.3s;
+}
+
+/* Cart Button Animation */
+.pulse-animation {
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+}
+
+/* Cart Modal Styles */
+.modal-xl {
+  max-width: 900px;
+}
+
+#cart-items-tbody tr td {
+  vertical-align: middle;
+}
+
+#cart-items-tbody .form-control {
+  padding: 0.375rem 0.5rem;
+  font-size: 0.875rem;
+}
+
+/* Cart Empty State */
+#cart-empty-state {
+  padding: 3rem 1rem;
+}
+
+/* Cart Count Badge */
+#cart-count {
+  font-weight: bold;
+  font-size: 1em;
+}
+
+/* Multiple action buttons */
+.page-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.page-actions .btn {
+  white-space: nowrap;
 }

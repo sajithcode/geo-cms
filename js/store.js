@@ -1,8 +1,13 @@
 // Inventory Management JavaScript
 
+// Global cart storage
+let cartItems = [];
+
 document.addEventListener("DOMContentLoaded", function () {
   initializeInventory();
   initializeImageHandling();
+  loadCartFromStorage();
+  updateCartUI();
 });
 
 // Custom alert function for inventory dashboard
@@ -84,6 +89,9 @@ function initializeInventory() {
 
   // Initialize date range handlers
   initializeDateRangeHandlers();
+
+  // Initialize bulk request date handlers
+  initializeBulkDateHandlers();
 
   // Initialize table sorting
   initializeTableSorting();
@@ -183,6 +191,77 @@ function initializeDateRangeHandlers() {
       validateDateRange();
     });
   }
+}
+
+function initializeBulkDateHandlers() {
+  const bulkStartDateInput = document.getElementById("bulk_borrow_start_date");
+  const bulkEndDateInput = document.getElementById("bulk_borrow_end_date");
+
+  if (bulkStartDateInput && bulkEndDateInput) {
+    bulkStartDateInput.addEventListener("change", function () {
+      validateBulkDateRange();
+      updateBulkEndDateMinimum();
+    });
+
+    bulkEndDateInput.addEventListener("change", function () {
+      validateBulkDateRange();
+    });
+  }
+}
+
+function updateBulkEndDateMinimum() {
+  const startDateInput = document.getElementById("bulk_borrow_start_date");
+  const endDateInput = document.getElementById("bulk_borrow_end_date");
+
+  if (startDateInput.value) {
+    const startDate = new Date(startDateInput.value);
+    const nextDay = new Date(startDate);
+    nextDay.setDate(startDate.getDate() + 1);
+
+    const minEndDate = nextDay.toISOString().split("T")[0];
+    endDateInput.min = minEndDate;
+
+    if (endDateInput.value && endDateInput.value <= startDateInput.value) {
+      endDateInput.value = "";
+    }
+  }
+}
+
+function validateBulkDateRange() {
+  const startDateInput = document.getElementById("bulk_borrow_start_date");
+  const endDateInput = document.getElementById("bulk_borrow_end_date");
+
+  if (startDateInput.value && endDateInput.value) {
+    const startDate = new Date(startDateInput.value);
+    const endDate = new Date(endDateInput.value);
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    if (startDate < today) {
+      showAlert("Start date cannot be in the past", "warning");
+      startDateInput.value = "";
+      return false;
+    }
+
+    if (endDate <= startDate) {
+      showAlert("End date must be after start date", "warning");
+      endDateInput.value = "";
+      return false;
+    }
+
+    const daysDifference = Math.ceil(
+      (endDate - startDate) / (1000 * 60 * 60 * 24)
+    );
+    if (daysDifference > 30) {
+      showAlert("Borrow period cannot exceed 30 days", "warning");
+      endDateInput.value = "";
+      return false;
+    }
+
+    return true;
+  }
+
+  return false;
 }
 
 function updateEndDateMinimum() {
@@ -1259,4 +1338,256 @@ function removeNewImage() {
   if (imageInput) {
     imageInput.value = "";
   }
+}
+
+// ===== CART MANAGEMENT FUNCTIONS =====
+
+function loadCartFromStorage() {
+  const savedCart = localStorage.getItem('borrowCart');
+  if (savedCart) {
+    try {
+      cartItems = JSON.parse(savedCart);
+    } catch (e) {
+      cartItems = [];
+      localStorage.removeItem('borrowCart');
+    }
+  }
+}
+
+function saveCartToStorage() {
+  localStorage.setItem('borrowCart', JSON.stringify(cartItems));
+}
+
+function addToCart(itemId, itemName, availableQty, categoryName, imagePath) {
+  // Check if item already in cart
+  const existingItem = cartItems.find(item => item.id === itemId);
+
+  if (existingItem) {
+    // Increase quantity if available
+    if (existingItem.quantity < availableQty) {
+      existingItem.quantity++;
+      showAlert(`Increased quantity of "${itemName}" in cart`, 'success');
+    } else {
+      showAlert(`Maximum available quantity (${availableQty}) already in cart`, 'warning');
+      return;
+    }
+  } else {
+    // Add new item to cart
+    cartItems.push({
+      id: itemId,
+      name: itemName,
+      quantity: 1,
+      available: availableQty,
+      category: categoryName,
+      image: imagePath
+    });
+    showAlert(`"${itemName}" added to cart`, 'success');
+  }
+
+  saveCartToStorage();
+  updateCartUI();
+}
+
+function removeFromCart(itemId) {
+  const itemIndex = cartItems.findIndex(item => item.id === itemId);
+  if (itemIndex > -1) {
+    const itemName = cartItems[itemIndex].name;
+    cartItems.splice(itemIndex, 1);
+    saveCartToStorage();
+    updateCartUI();
+    renderCartItems();
+    showAlert(`"${itemName}" removed from cart`, 'info');
+  }
+}
+
+function updateCartItemQuantity(itemId, newQuantity) {
+  const item = cartItems.find(item => item.id === itemId);
+  if (item) {
+    if (newQuantity > 0 && newQuantity <= item.available) {
+      item.quantity = newQuantity;
+      saveCartToStorage();
+      updateCartUI();
+    } else if (newQuantity > item.available) {
+      showAlert(`Maximum available quantity is ${item.available}`, 'warning');
+      renderCartItems();
+    }
+  }
+}
+
+function clearCart() {
+  if (cartItems.length === 0) {
+    showAlert('Cart is already empty', 'info');
+    return;
+  }
+
+  if (confirm('Are you sure you want to clear all items from your cart?')) {
+    cartItems = [];
+    saveCartToStorage();
+    updateCartUI();
+    renderCartItems();
+    showAlert('Cart cleared', 'info');
+  }
+}
+
+function updateCartUI() {
+  const cartCount = document.getElementById('cart-count');
+  const cartBtn = document.getElementById('cart-btn');
+
+  if (cartCount) {
+    cartCount.textContent = cartItems.length;
+  }
+
+  if (cartBtn) {
+    if (cartItems.length > 0) {
+      cartBtn.classList.add('pulse-animation');
+    } else {
+      cartBtn.classList.remove('pulse-animation');
+    }
+  }
+}
+
+function renderCartItems() {
+  const tbody = document.getElementById('cart-items-tbody');
+  const emptyState = document.getElementById('cart-empty-state');
+  const itemsContainer = document.getElementById('cart-items-container');
+  const clearBtn = document.getElementById('clear-cart-btn');
+  const submitBtn = document.getElementById('submit-cart-btn');
+  const submitCount = document.getElementById('cart-submit-count');
+
+  if (!tbody) return;
+
+  tbody.innerHTML = '';
+
+  if (cartItems.length === 0) {
+    emptyState.style.display = 'block';
+    itemsContainer.style.display = 'none';
+    clearBtn.style.display = 'none';
+    submitBtn.style.display = 'none';
+    return;
+  }
+
+  emptyState.style.display = 'none';
+  itemsContainer.style.display = 'block';
+  clearBtn.style.display = 'inline-block';
+  submitBtn.style.display = 'inline-block';
+  submitCount.textContent = cartItems.length;
+
+  cartItems.forEach(item => {
+    const row = document.createElement('tr');
+    row.innerHTML = `
+      <td class="image-column">
+        ${item.image
+        ? `<img src="../${item.image}" alt="${item.name}" class="item-table-image" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;" onerror="this.outerHTML='<span class=&quot;no-image&quot;>📷</span>'">`
+        : '<span class="no-image">📷</span>'
+      }
+      </td>
+      <td><strong>${escapeHtml(item.name)}</strong></td>
+      <td><span class="badge badge-info">${escapeHtml(item.category)}</span></td>
+      <td>
+        <input type="number" class="form-control" style="width: 80px; display: inline-block;" 
+               value="${item.quantity}" min="1" max="${item.available}"
+               onchange="updateCartItemQuantity(${item.id}, parseInt(this.value))">
+      </td>
+  <td><span class="badge badge-available">${item.available} available</span></td>
+      <td>
+        <button class="btn btn-sm btn-danger" onclick="removeFromCart(${item.id})">
+          ❌ Remove
+        </button>
+      </td>
+    `;
+    tbody.appendChild(row);
+  });
+}
+
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;'
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
+
+function submitBulkRequests() {
+  if (cartItems.length === 0) {
+    showAlert('Your cart is empty', 'warning');
+    return;
+  }
+
+  const form = document.getElementById('bulk-request-form');
+  const startDate = document.getElementById('bulk_borrow_start_date').value;
+  const endDate = document.getElementById('bulk_borrow_end_date').value;
+  const reason = document.getElementById('bulk_reason').value.trim();
+
+  // Validate
+  if (!startDate || !endDate) {
+    showAlert('Please select both start and end dates', 'danger');
+    return;
+  }
+
+  if (!validateBulkDateRange()) {
+    return;
+  }
+
+  if (!reason || reason.length < 10) {
+    showAlert('Please provide a detailed reason (at least 10 characters)', 'danger');
+    return;
+  }
+
+  // Prepare data
+  const requestData = {
+    csrf_token: form.querySelector('[name="csrf_token"]').value,
+    items: cartItems.map(item => ({
+      item_id: item.id,
+      quantity: item.quantity
+    })),
+    borrow_start_date: startDate,
+    borrow_end_date: endDate,
+    reason: reason
+  };
+
+  const submitBtn = document.getElementById('submit-cart-btn');
+  setLoading(submitBtn, true);
+
+  fetch('php/process_bulk_borrow_request.php', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(requestData)
+  })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        showAlert(`Successfully submitted ${data.count} request(s)!`, 'success');
+        cartItems = [];
+        saveCartToStorage();
+        updateCartUI();
+        hideModal('cart-modal');
+        form.reset();
+        setTimeout(() => location.reload(), 1500);
+      } else {
+        showAlert(data.message || 'Failed to submit requests', 'danger');
+      }
+    })
+    .catch(error => {
+      console.error('Error submitting bulk requests:', error);
+      showAlert('An error occurred while submitting requests', 'danger');
+    })
+    .finally(() => {
+      setLoading(submitBtn, false);
+    });
+}
+
+// Override showModal to render cart when cart modal is opened
+const originalShowModal = window.showModal;
+if (typeof originalShowModal === 'function') {
+  window.showModal = function (modalId) {
+    if (modalId === 'cart-modal') {
+      renderCartItems();
+    }
+    originalShowModal(modalId);
+  };
 }

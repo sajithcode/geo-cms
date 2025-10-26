@@ -92,7 +92,10 @@ try {
                     </div>
                     <div class="page-actions">
                         <button class="btn btn-primary" onclick="showModal('request-modal')">
-                            ➕ Request to Borrow
+                            ➕ Single Request
+                        </button>
+                        <button class="btn btn-success" onclick="showModal('cart-modal')" id="cart-btn">
+                            🛒 Cart (<span id="cart-count">0</span>)
                         </button>
                     </div>
                 </div>
@@ -205,11 +208,14 @@ try {
                                                 ?>
                                             </td>
                                             <td>
-                                                <span class="badge badge-success"><?php echo $item['quantity_available']; ?> available</span>
+                                                <span class="badge badge-available"><?php echo $item['quantity_available']; ?> available</span>
                                             </td>
                                             <td>
-                                                <button class="btn btn-sm btn-primary" onclick="openRequestModalForItem(<?php echo $item['id']; ?>, '<?php echo htmlspecialchars($item['name'], ENT_QUOTES); ?>', <?php echo $item['quantity_available']; ?>)">
-                                                    Request to Borrow
+                                                <button class="btn btn-sm btn-success" onclick="addToCart(<?php echo $item['id']; ?>, '<?php echo htmlspecialchars($item['name'], ENT_QUOTES); ?>', <?php echo $item['quantity_available']; ?>, '<?php echo htmlspecialchars($item['category_name'] ?? 'Uncategorized', ENT_QUOTES); ?>', '<?php echo htmlspecialchars($item['image_path'] ?? '', ENT_QUOTES); ?>')">
+                                                    ➕ Add to Cart
+                                                </button>
+                                                <button class="btn btn-sm btn-outline-primary" onclick="openRequestModalForItem(<?php echo $item['id']; ?>, '<?php echo htmlspecialchars($item['name'], ENT_QUOTES); ?>', <?php echo $item['quantity_available']; ?>)">
+                                                    Quick Request
                                                 </button>
                                             </td>
                                         </tr>
@@ -459,6 +465,87 @@ try {
             </div>
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="hideModal('image-preview-modal')">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Modal -->
+    <div id="cart-modal" class="modal" style="display: none;">
+        <div class="modal-content modal-xl">
+            <div class="modal-header">
+                <h3>🛒 Your Cart - Multiple Request Submission</h3>
+                <button onclick="hideModal('cart-modal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="cart-empty-state" class="empty-state" style="display: none;">
+                    <div class="empty-icon">🛒</div>
+                    <h3>Your Cart is Empty</h3>
+                    <p>Add items to your cart to submit multiple requests at once</p>
+                </div>
+
+                <div id="cart-items-container" style="display: none;">
+                    <div class="alert alert-info">
+                        <strong>Bulk Request:</strong> Set the borrow period and reason for all items below, then submit all requests at once.
+                    </div>
+
+                    <div class="table-container">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Image</th>
+                                    <th>Item</th>
+                                    <th>Category</th>
+                                    <th>Quantity</th>
+                                    <th>Available</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="cart-items-tbody">
+                                <!-- Cart items will be added here -->
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <form id="bulk-request-form">
+                        <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
+                        <input type="hidden" name="cart_items" id="cart-items-data">
+
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="bulk_borrow_start_date" class="form-label">Borrow Start Date (All Items) *</label>
+                                    <input type="date" id="bulk_borrow_start_date" name="bulk_borrow_start_date" 
+                                           class="form-control" required 
+                                           min="<?php echo date('Y-m-d'); ?>">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label for="bulk_borrow_end_date" class="form-label">Borrow End Date (All Items) *</label>
+                                    <input type="date" id="bulk_borrow_end_date" name="bulk_borrow_end_date" 
+                                           class="form-control" required 
+                                           min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>">
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="bulk_reason" class="form-label">Reason for Borrowing (All Items) *</label>
+                            <textarea id="bulk_reason" name="bulk_reason" class="form-control" rows="3" required
+                                      placeholder="Provide a detailed reason that applies to all items in your cart..."></textarea>
+                            <small class="form-text">This reason will be used for all items in your cart</small>
+                        </div>
+                    </form>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" onclick="hideModal('cart-modal')">Close</button>
+                <button type="button" class="btn btn-danger" onclick="clearCart()" id="clear-cart-btn" style="display: none;">
+                    Clear Cart
+                </button>
+                <button type="button" class="btn btn-success" onclick="submitBulkRequests()" id="submit-cart-btn" style="display: none;">
+                    Submit All Requests (<span id="cart-submit-count">0</span> items)
+                </button>
             </div>
         </div>
     </div>
