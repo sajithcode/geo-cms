@@ -18,7 +18,7 @@ try {
             $stmt = $pdo->query("SELECT COUNT(*) as total_users FROM users WHERE is_active = TRUE");
             $stats['total_users'] = $stmt->fetchColumn();
             
-            $stmt = $pdo->query("SELECT COUNT(*) as total_items FROM inventory_items");
+            $stmt = $pdo->query("SELECT COUNT(*) as total_items FROM store_items");
             $stats['total_items'] = $stmt->fetchColumn();
             
             $stmt = $pdo->query("SELECT COUNT(*) as pending_requests FROM borrow_requests WHERE status = 'pending'");
@@ -36,7 +36,7 @@ try {
             $stmt = $pdo->query("SELECT COUNT(*) as pending_lab_requests FROM lab_reservations WHERE status = 'pending'");
             $stats['pending_lab_requests'] = $stmt->fetchColumn();
             
-            $stmt = $pdo->query("SELECT COUNT(*) as total_inventory FROM inventory_items");
+            $stmt = $pdo->query("SELECT COUNT(*) as total_inventory FROM store_items");
             $stats['total_inventory'] = $stmt->fetchColumn();
             
             $stmt = $pdo->query("SELECT COUNT(*) as open_issues FROM issue_reports WHERE status IN ('pending', 'in_progress')");
@@ -112,9 +112,9 @@ try {
                         <span class="icon">🏠</span>
                         Dashboard
                     </a></li>
-                    <li><a href="inventory/">
+                    <li><a href="store/">
                         <span class="icon">📦</span>
-                        Inventory
+                        Store
                     </a></li>
                     <li><a href="labs/">
                         <span class="icon">🔬</span>
@@ -181,7 +181,7 @@ try {
                             <div class="stat-icon">📦</div>
                             <div class="stat-info">
                                 <h3><?php echo $stats['total_items'] ?? 0; ?></h3>
-                                <p>Inventory Items</p>
+                                <p>Store Items</p>
                             </div>
                         </div>
                         <div class="stat-card">
@@ -217,7 +217,7 @@ try {
                             <div class="stat-icon">📦</div>
                             <div class="stat-info">
                                 <h3><?php echo $stats['total_inventory'] ?? 0; ?></h3>
-                                <p>Total Inventory</p>
+                                <p>Total Store Items</p>
                             </div>
                         </div>
                         <div class="stat-card">
@@ -292,22 +292,22 @@ try {
                 <div class="main-tiles">
                     <div class="tile inventory-tile">
                         <div class="tile-header">
-                            <h3>📦 Inventory Management</h3>
+                            <h3>📦 Store Management</h3>
                             <p>Manage equipment and borrowing requests</p>
                         </div>
                         <div class="tile-actions">
                             <?php if ($user_role === 'student'): ?>
-                                <a href="inventory/" class="btn btn-primary">Request to Borrow</a>
-                                <a href="inventory/" class="btn btn-outline-primary">My Requests</a>
+                                <a href="store/" class="btn btn-primary">Request to Borrow</a>
+                                <a href="store/" class="btn btn-outline-primary">My Requests</a>
                             <?php elseif ($user_role === 'staff'): ?>
-                                <a href="inventory/" class="btn btn-primary">Manage Requests</a>
-                                <a href="inventory/" class="btn btn-outline-primary">Inventory Status</a>
+                                <a href="store/" class="btn btn-primary">Manage Requests</a>
+                                <a href="store/" class="btn btn-outline-primary">Store Status</a>
                             <?php elseif ($user_role === 'admin'): ?>
-                                <a href="inventory/" class="btn btn-primary">Admin Dashboard</a>
-                                <a href="inventory/" class="btn btn-outline-primary">Manage Items</a>
+                                <a href="store/" class="btn btn-primary">Admin Dashboard</a>
+                                <a href="store/" class="btn btn-outline-primary">Manage Items</a>
                             <?php else: ?>
-                                <a href="inventory/" class="btn btn-primary">View Inventory</a>
-                                <a href="inventory/" class="btn btn-outline-primary">Request Items</a>
+                                <a href="store/" class="btn btn-primary">View Store</a>
+                                <a href="store/" class="btn btn-outline-primary">Request Items</a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -396,7 +396,7 @@ try {
             <div class="modal-body">
                 <h4>Getting Started:</h4>
                 <ul>
-                    <li><strong>Inventory:</strong> Request equipment or manage borrowing requests</li>
+                    <li><strong>Store:</strong> Request equipment or manage borrowing requests</li>
                     <li><strong>Labs:</strong> Reserve laboratory time or view schedules</li>
                     <li><strong>Issues:</strong> Report problems with equipment or facilities</li>
                     <li><strong>Profile:</strong> Update your personal information and preferences</li>

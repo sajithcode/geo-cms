@@ -1,6 +1,6 @@
 /**
  * Category Management JavaScript Functions
- * Include this file in your inventory management pages
+ * Include this file in your store management pages
  */
 
 class CategoryManager {

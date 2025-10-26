@@ -160,7 +160,7 @@ try {
                     $stmt = $pdo->query("SELECT COUNT(*) FROM labs");
                     $stats['total_labs'] = $stmt->fetchColumn();
                     
-                    $stmt = $pdo->query("SELECT COUNT(*) FROM inventory_items");
+                    $stmt = $pdo->query("SELECT COUNT(*) FROM store_items");
                     $stats['total_items'] = $stmt->fetchColumn();
                     
                     $stmt = $pdo->query("SELECT COUNT(*) FROM issue_reports WHERE status IN ('pending', 'in_progress')");
