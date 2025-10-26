@@ -45,7 +45,7 @@ try {
         SELECT ii.*, ic.name as category_name
         FROM store_items ii
         LEFT JOIN store_categories ic ON ii.category_id = ic.id
-        WHERE ii.quantity_available > 0
+        WHERE ii.quantity_available > 0 AND ii.status = 'active'
         ORDER BY ii.name ASC
     ");
     $stmt->execute();
@@ -147,16 +147,6 @@ try {
                         <div class="search-group">
                             <input type="text" id="items-search" class="form-control" placeholder="Search items...">
                         </div>
-                    </div>
-
-                    <!-- DEBUG: Show available items count -->
-                    <div style="background: #f8f9fa; padding: 10px; margin: 10px 0; border: 1px solid #dee2e6; border-radius: 5px;">
-                        <strong>DEBUG:</strong> Found <?php echo count($available_items); ?> available items in database.
-                        <?php if (count($available_items) > 0): ?>
-                            <br>First item: <?php echo htmlspecialchars($available_items[0]['name']); ?> (Category: <?php echo htmlspecialchars($available_items[0]['category_name'] ?? 'None'); ?>)
-                        <?php endif; ?>
-                        <br><strong>If you see this debug info but no table below, there might be a JavaScript or CSS issue.</strong>
-                        <br><strong>If you see "Found 0 available items", there's a database connection issue.</strong>
                     </div>
 
                     <div class="table-container">
