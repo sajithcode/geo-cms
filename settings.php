@@ -92,6 +92,86 @@ $page_title = 'Settings';
             border-radius: 8px;
             margin-bottom: 20px;
         }
+        
+        /* Toggle Switch Styles */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        
+        input:checked + .toggle-slider {
+            background-color: #3b82f6;
+        }
+        
+        input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+        
+        .form-control {
+            min-width: 150px;
+        }
+        
+        /* Basic theme support */
+        .theme-dark {
+            --bg-color: #1f2937;
+            --text-color: #f9fafb;
+            --card-bg: #374151;
+            --border-color: #4b5563;
+        }
+        
+        .theme-light {
+            --bg-color: #ffffff;
+            --text-color: #111827;
+            --card-bg: #ffffff;
+            --border-color: #e5e7eb;
+        }
+        
+        body.theme-dark {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        
+        body.theme-dark .settings-section {
+            background: var(--card-bg);
+            border-color: var(--border-color);
+            color: var(--text-color);
+        }
+        
+        body.theme-dark .settings-item {
+            border-color: var(--border-color);
+        }
     </style>
 </head>
 <body>
@@ -119,12 +199,102 @@ $page_title = 'Settings';
                         Application Settings
                     </h2>
                     
-                    <div class="coming-soon">
-                        <div class="coming-soon-icon">🔧</div>
-                        <h3>Settings Panel Coming Soon</h3>
-                        <p>Advanced application settings and preferences will be available here in a future update.</p>
-                        <p>For now, you can manage your personal settings in your <a href="profile.php">Profile Page</a>.</p>
-                    </div>
+                    <form id="settingsForm" method="POST" action="php/settings_process.php">
+                        <!-- Theme Settings -->
+                        <div class="settings-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Theme Preference</div>
+                                <div class="setting-description">Choose your preferred color theme</div>
+                            </div>
+                            <div class="setting-action">
+                                <select name="theme" class="form-control" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
+                                    <option value="light" <?php echo (isset($_SESSION['theme']) && $_SESSION['theme'] === 'light') ? 'selected' : ''; ?>>Light</option>
+                                    <option value="dark" <?php echo (isset($_SESSION['theme']) && $_SESSION['theme'] === 'dark') ? 'selected' : ''; ?>>Dark</option>
+                                    <option value="auto" <?php echo (!isset($_SESSION['theme']) || $_SESSION['theme'] === 'auto') ? 'selected' : ''; ?>>Auto (System)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Notification Settings -->
+                        <div class="settings-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Email Notifications</div>
+                                <div class="setting-description">Receive email notifications for important updates</div>
+                            </div>
+                            <div class="setting-action">
+                                <label class="toggle-switch">
+                                    <input type="checkbox" name="email_notifications" value="1" 
+                                           <?php echo (isset($_SESSION['email_notifications']) && $_SESSION['email_notifications']) ? 'checked' : ''; ?>>
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- Dashboard Layout -->
+                        <div class="settings-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Dashboard Layout</div>
+                                <div class="setting-description">Choose your preferred dashboard view</div>
+                            </div>
+                            <div class="setting-action">
+                                <select name="dashboard_layout" class="form-control" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
+                                    <option value="cards" <?php echo (isset($_SESSION['dashboard_layout']) && $_SESSION['dashboard_layout'] === 'cards') ? 'selected' : ''; ?>>Card View</option>
+                                    <option value="list" <?php echo (isset($_SESSION['dashboard_layout']) && $_SESSION['dashboard_layout'] === 'list') ? 'selected' : ''; ?>>List View</option>
+                                    <option value="compact" <?php echo (!isset($_SESSION['dashboard_layout']) || $_SESSION['dashboard_layout'] === 'compact') ? 'selected' : ''; ?>>Compact</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Items Per Page -->
+                        <div class="settings-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Items Per Page</div>
+                                <div class="setting-description">Number of items to display per page in lists</div>
+                            </div>
+                            <div class="setting-action">
+                                <select name="items_per_page" class="form-control" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
+                                    <option value="10" <?php echo (isset($_SESSION['items_per_page']) && $_SESSION['items_per_page'] == 10) ? 'selected' : ''; ?>>10</option>
+                                    <option value="25" <?php echo (isset($_SESSION['items_per_page']) && $_SESSION['items_per_page'] == 25) ? 'selected' : ''; ?>>25</option>
+                                    <option value="50" <?php echo (!isset($_SESSION['items_per_page']) || $_SESSION['items_per_page'] == 50) ? 'selected' : ''; ?>>50</option>
+                                    <option value="100" <?php echo (isset($_SESSION['items_per_page']) && $_SESSION['items_per_page'] == 100) ? 'selected' : ''; ?>>100</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Language Settings -->
+                        <div class="settings-item">
+                            <div class="setting-info">
+                                <div class="setting-label">Language</div>
+                                <div class="setting-description">Select your preferred language</div>
+                            </div>
+                            <div class="setting-action">
+                                <select name="language" class="form-control" style="padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white;">
+                                    <option value="en" <?php echo (!isset($_SESSION['language']) || $_SESSION['language'] === 'en') ? 'selected' : ''; ?>>English</option>
+                                    <option value="si" <?php echo (isset($_SESSION['language']) && $_SESSION['language'] === 'si') ? 'selected' : ''; ?>>සිංහල (Sinhala)</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Save Button -->
+                        <div class="settings-item" style="border-top: 2px solid #e5e7eb; margin-top: 20px; padding-top: 20px;">
+                            <div class="setting-info">
+                                <div class="setting-label">Save Settings</div>
+                                <div class="setting-description">Apply your preference changes</div>
+                            </div>
+                            <div class="setting-action">
+                                <button type="submit" class="btn btn-primary" style="
+                                    padding: 10px 20px;
+                                    border-radius: 6px;
+                                    background: #3b82f6;
+                                    color: white;
+                                    border: none;
+                                    font-size: 14px;
+                                    font-weight: 500;
+                                    cursor: pointer;
+                                ">Save Changes</button>
+                            </div>
+                        </div>
+                    </form>
                 </div>
 
                 <!-- System Information -->
@@ -253,5 +423,74 @@ $page_title = 'Settings';
     </div>
 
     <script src="js/script.js"></script>
+    <script>
+        // Handle success/error messages
+        document.addEventListener('DOMContentLoaded', function() {
+            <?php if (isset($_SESSION['settings_success'])): ?>
+                showMessage('<?php echo $_SESSION['settings_success']; ?>', 'success');
+                <?php unset($_SESSION['settings_success']); ?>
+            <?php endif; ?>
+
+            <?php if (isset($_SESSION['settings_error'])): ?>
+                showMessage('<?php echo $_SESSION['settings_error']; ?>', 'error');
+                <?php unset($_SESSION['settings_error']); ?>
+            <?php endif; ?>
+        });
+
+        // Apply theme immediately when changed
+        document.querySelector('select[name="theme"]').addEventListener('change', function() {
+            const theme = this.value;
+            applyTheme(theme);
+        });
+
+        function applyTheme(theme) {
+            const body = document.body;
+            body.classList.remove('theme-light', 'theme-dark', 'theme-auto');
+
+            if (theme === 'dark') {
+                body.classList.add('theme-dark');
+            } else if (theme === 'light') {
+                body.classList.add('theme-light');
+            } else {
+                // Auto theme - detect system preference
+                if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    body.classList.add('theme-dark');
+                } else {
+                    body.classList.add('theme-light');
+                }
+            }
+        }
+
+        function showMessage(message, type) {
+            // Create message element
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `alert alert-${type}`;
+            messageDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 1000;
+                max-width: 400px;
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+                background: ${type === 'success' ? '#10b981' : '#ef4444'};
+            `;
+            messageDiv.textContent = message;
+
+            document.body.appendChild(messageDiv);
+
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                messageDiv.remove();
+            }, 5000);
+        }
+
+        // Apply current theme on page load
+        const currentTheme = '<?php echo isset($_SESSION['theme']) ? $_SESSION['theme'] : 'auto'; ?>';
+        applyTheme(currentTheme);
+    </script>
 </body>
 </html>
