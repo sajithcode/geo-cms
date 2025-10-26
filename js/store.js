@@ -82,6 +82,9 @@ function initializeInventory() {
   // Initialize item selection handlers
   initializeItemSelection();
 
+  // Initialize multi-item functionality
+  initializeMultiItemForm();
+
   // Initialize date range handlers
   initializeDateRangeHandlers();
 
@@ -157,6 +160,7 @@ function initializeSearchAndFilters() {
 }
 
 function initializeItemSelection() {
+  // Legacy single item selection (for backward compatibility)
   const itemSelect = document.getElementById("item_id");
   if (itemSelect) {
     itemSelect.addEventListener("change", handleItemSelection);
@@ -166,6 +170,227 @@ function initializeItemSelection() {
   const quantityInput = document.getElementById("quantity");
   if (quantityInput) {
     quantityInput.addEventListener("input", validateQuantity);
+  }
+}
+
+function initializeMultiItemForm() {
+  // Add item button
+  const addItemBtn = document.getElementById("add-item-btn");
+  if (addItemBtn) {
+    addItemBtn.addEventListener("click", addItemRow);
+  }
+
+  // Initialize existing item rows
+  updateItemRowListeners();
+}
+
+function addItemRow() {
+  const container = document.getElementById("items-container");
+  if (!container) return;
+
+  const rowCount = container.querySelectorAll(".item-request-row").length + 1;
+
+  const rowHtml = `
+    <div class="item-request-row" data-row-id="${rowCount}">
+      <div class="row">
+        <div class="col-6">
+          <select name="items[${rowCount}][item_id]" class="form-control form-select item-select" required>
+            <option value="">Choose an item</option>
+            <?php foreach ($available_items as $item): ?>
+              <option value="<?php echo $item['id']; ?>"
+                      data-available="<?php echo $item['quantity_available']; ?>"
+                      data-description="<?php echo htmlspecialchars($item['description']); ?>"
+                      data-image="<?php echo htmlspecialchars($item['image_path'] ?? ''); ?>">
+                <?php echo htmlspecialchars($item['name']); ?>
+                (Available: <?php echo $item['quantity_available']; ?>)
+                <?php if ($item['category_name']): ?>
+                  - <?php echo htmlspecialchars($item['category_name']); ?>
+                <?php endif; ?>
+              </option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="col-4">
+          <input type="number" name="items[${rowCount}][quantity]" class="form-control item-quantity"
+                 min="1" max="1" required placeholder="Qty">
+        </div>
+        <div class="col-2">
+          <button type="button" class="btn btn-danger btn-sm remove-item-btn">
+            <i class="fa fa-trash"></i> Remove
+          </button>
+        </div>
+      </div>
+      <div class="item-details mt-2" style="display: none;">
+        <div class="alert alert-info">
+          <div class="row">
+            <div class="col-8">
+              <div class="item-info-text">
+                <strong>Description:</strong>
+                <p class="item-description"></p>
+                <strong>Available:</strong> <span class="available-quantity"></span>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="item-image-preview" style="display: none;">
+                <img class="selected-item-image" src="" alt="Item image" style="max-width: 100px;">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+
+  container.insertAdjacentHTML("beforeend", rowHtml);
+  updateItemRowListeners();
+
+  // Show remove button for all rows if more than one
+  const rows = container.querySelectorAll(".item-request-row");
+  const removeButtons = container.querySelectorAll(".remove-item-btn");
+  removeButtons.forEach((btn) => {
+    btn.style.display = rows.length > 1 ? "block" : "none";
+  });
+}
+
+function removeItemRow(button) {
+  const row = button.closest(".item-request-row");
+  const container = document.getElementById("items-container");
+
+  if (row && container) {
+    row.remove();
+    updateItemRowListeners();
+
+    // Show remove button for all rows if more than one
+    const rows = container.querySelectorAll(".item-request-row");
+    const removeButtons = container.querySelectorAll(".remove-item-btn");
+    removeButtons.forEach((btn) => {
+      btn.style.display = rows.length > 1 ? "block" : "none";
+    });
+
+    // Renumber remaining rows
+    rows.forEach((row, index) => {
+      const newIndex = index + 1;
+      row.setAttribute("data-row-id", newIndex);
+
+      const select = row.querySelector(".item-select");
+      const quantity = row.querySelector(".item-quantity");
+
+      if (select) select.name = `items[${newIndex}][item_id]`;
+      if (quantity) quantity.name = `items[${newIndex}][quantity]`;
+    });
+  }
+}
+
+function updateItemRowListeners() {
+  // Remove existing listeners
+  document.querySelectorAll(".remove-item-btn").forEach((btn) => {
+    btn.removeEventListener("click", handleRemoveClick);
+  });
+
+  document.querySelectorAll(".item-select").forEach((select) => {
+    select.removeEventListener("change", handleMultiItemSelection);
+  });
+
+  document.querySelectorAll(".item-quantity").forEach((input) => {
+    input.removeEventListener("input", handleQuantityValidation);
+  });
+
+  // Add new listeners
+  document.querySelectorAll(".remove-item-btn").forEach((btn) => {
+    btn.addEventListener("click", handleRemoveClick);
+  });
+
+  document.querySelectorAll(".item-select").forEach((select) => {
+    select.addEventListener("change", handleMultiItemSelection);
+  });
+
+  document.querySelectorAll(".item-quantity").forEach((input) => {
+    input.addEventListener("input", handleQuantityValidation);
+  });
+}
+
+function handleRemoveClick(e) {
+  removeItemRow(e.target);
+}
+
+function handleMultiItemSelection(e) {
+  const select = e.target;
+  const row = select.closest(".item-request-row");
+  const selectedOption = select.selectedOptions[0];
+
+  if (!row) return;
+
+  const itemDetails = row.querySelector(".item-details");
+  const itemDescription = row.querySelector(".item-description");
+  const availableQuantity = row.querySelector(".available-quantity");
+  const quantityInput = row.querySelector(".item-quantity");
+  const imagePreview = row.querySelector(".item-image-preview");
+  const itemImage = row.querySelector(".selected-item-image");
+
+  if (selectedOption && selectedOption.value) {
+    const available = selectedOption.getAttribute("data-available");
+    const description = selectedOption.getAttribute("data-description");
+    const imagePath = selectedOption.getAttribute("data-image");
+
+    // Show item details
+    if (itemDetails) {
+      itemDetails.style.display = "block";
+    }
+
+    // Update description
+    if (itemDescription) {
+      itemDescription.textContent = description || "No description available";
+    }
+
+    // Update available quantity
+    if (availableQuantity) {
+      availableQuantity.textContent = available;
+    }
+
+    // Update quantity input
+    if (quantityInput) {
+      quantityInput.max = available;
+      quantityInput.value = Math.min(1, available);
+    }
+
+    // Show item image if available
+    if (imagePreview && itemImage && imagePath) {
+      itemImage.src = "../" + imagePath;
+      itemImage.onerror = function () {
+        imagePreview.style.display = "none";
+      };
+      itemImage.onload = function () {
+        imagePreview.style.display = "block";
+        itemImage.style.cursor = "pointer";
+        itemImage.onclick = function () {
+          showImagePreview(
+            "../" + imagePath,
+            selectedOption.textContent.split(" (")[0]
+          );
+        };
+      };
+    } else if (imagePreview) {
+      imagePreview.style.display = "none";
+    }
+  } else {
+    // Hide item details
+    if (itemDetails) {
+      itemDetails.style.display = "none";
+    }
+    if (imagePreview) {
+      imagePreview.style.display = "none";
+    }
+  }
+}
+
+function handleQuantityValidation(e) {
+  const input = e.target;
+  const max = parseInt(input.max);
+  const value = parseInt(input.value);
+
+  if (value > max) {
+    input.value = max;
+    showAlert(`Quantity adjusted to maximum available: ${max}`, "warning");
   }
 }
 
@@ -295,28 +520,86 @@ function handleBorrowRequest(e) {
 }
 
 function validateBorrowRequest(form) {
-  const itemId = form.querySelector("#item_id").value;
-  const quantity = parseInt(form.querySelector("#quantity").value);
   const startDate = form.querySelector("#borrow_start_date").value;
   const endDate = form.querySelector("#borrow_end_date").value;
   const reason = form.querySelector("#reason").value.trim();
 
-  if (!itemId) {
-    showAlert("Please select an item to borrow", "danger");
-    return false;
-  }
-
-  if (!quantity || quantity < 1) {
-    showAlert("Please enter a valid quantity", "danger");
-    return false;
-  }
-
-  const maxQuantity = parseInt(
-    document.getElementById("max-quantity").textContent
+  // Check if we have multi-item form or single item form
+  const multiItemRows = form.querySelectorAll(
+    "#items-container .item-request-row"
   );
-  if (quantity > maxQuantity) {
-    showAlert(`Quantity cannot exceed ${maxQuantity}`, "danger");
-    return false;
+  const singleItemSelect = form.querySelector("#item_id");
+
+  if (multiItemRows.length > 0) {
+    // Multi-item validation
+    if (multiItemRows.length === 0) {
+      showAlert("Please add at least one item to borrow", "danger");
+      return false;
+    }
+
+    // Check each item row
+    for (let i = 0; i < multiItemRows.length; i++) {
+      const row = multiItemRows[i];
+      const itemSelect = row.querySelector(".item-select");
+      const quantityInput = row.querySelector(".item-quantity");
+
+      if (!itemSelect || !itemSelect.value) {
+        showAlert(`Please select an item for row ${i + 1}`, "danger");
+        return false;
+      }
+
+      const quantity = parseInt(quantityInput.value);
+      if (!quantity || quantity < 1) {
+        showAlert(`Please enter a valid quantity for row ${i + 1}`, "danger");
+        return false;
+      }
+
+      const maxQuantity = parseInt(
+        itemSelect.selectedOptions[0].getAttribute("data-available")
+      );
+      if (quantity > maxQuantity) {
+        showAlert(
+          `Quantity for row ${i + 1} cannot exceed ${maxQuantity}`,
+          "danger"
+        );
+        return false;
+      }
+    }
+
+    // Check for duplicate items
+    const selectedItems = Array.from(multiItemRows)
+      .map((row) => {
+        const select = row.querySelector(".item-select");
+        return select ? select.value : null;
+      })
+      .filter((id) => id);
+
+    if (new Set(selectedItems).size !== selectedItems.length) {
+      showAlert("You cannot request the same item multiple times", "danger");
+      return false;
+    }
+  } else if (singleItemSelect) {
+    // Legacy single item validation
+    const itemId = singleItemSelect.value;
+    const quantity = parseInt(form.querySelector("#quantity").value);
+
+    if (!itemId) {
+      showAlert("Please select an item to borrow", "danger");
+      return false;
+    }
+
+    if (!quantity || quantity < 1) {
+      showAlert("Please enter a valid quantity", "danger");
+      return false;
+    }
+
+    const maxQuantity = parseInt(
+      document.getElementById("max-quantity").textContent
+    );
+    if (quantity > maxQuantity) {
+      showAlert(`Quantity cannot exceed ${maxQuantity}`, "danger");
+      return false;
+    }
   }
 
   if (!startDate || !endDate) {
@@ -392,15 +675,15 @@ function validateQuantity() {
 // Function to open request modal with pre-selected item (for student dashboard)
 function openRequestModalForItem(itemId, itemName, availableQty) {
   // Open the request modal
-  showModal('request-modal');
+  showModal("request-modal");
 
   // Set the selected item in the dropdown
-  const itemSelect = document.getElementById('item_id');
+  const itemSelect = document.getElementById("item_id");
   if (itemSelect) {
     itemSelect.value = itemId;
 
     // Trigger change event to update item details
-    const event = new Event('change');
+    const event = new Event("change");
     itemSelect.dispatchEvent(event);
   }
 }
@@ -439,8 +722,9 @@ function filterRequests() {
 function filterItems() {
   // Support both item-search (admin) and items-search (student) IDs
   const searchValue =
-    (document.getElementById("item-search")?.value.toLowerCase() ||
-      document.getElementById("items-search")?.value.toLowerCase() || "");
+    document.getElementById("item-search")?.value.toLowerCase() ||
+    document.getElementById("items-search")?.value.toLowerCase() ||
+    "";
   const categoryValue = document.getElementById("category-filter")?.value || "";
 
   const table = document.getElementById("items-table");
@@ -513,6 +797,56 @@ function viewRequestDetails(requestId) {
 
 function displayRequestDetails(request) {
   const content = document.getElementById("request-details-content");
+
+  // Build items HTML
+  let itemsHtml = "";
+  if (request.items && request.items.length > 0) {
+    itemsHtml = request.items
+      .map(
+        (item) => `
+      <div class="request-item">
+        <div class="item-header">
+          <strong>${item.item_name}</strong>
+          <span class="badge badge-secondary">Qty: ${item.quantity}</span>
+        </div>
+        ${
+          item.category_name
+            ? `<div class="item-category">Category: ${item.category_name}</div>`
+            : ""
+        }
+        ${
+          item.item_description
+            ? `<div class="item-description">${item.item_description}</div>`
+            : ""
+        }
+      </div>
+    `
+      )
+      .join("");
+  } else {
+    // Fallback for single item (backward compatibility)
+    itemsHtml = `
+      <div class="request-item">
+        <div class="item-header">
+          <strong>${request.item_name || "Unknown Item"}</strong>
+          <span class="badge badge-secondary">Qty: ${
+            request.quantity || 1
+          }</span>
+        </div>
+        ${
+          request.category_name
+            ? `<div class="item-category">Category: ${request.category_name}</div>`
+            : ""
+        }
+        ${
+          request.item_description
+            ? `<div class="item-description">${request.item_description}</div>`
+            : ""
+        }
+      </div>
+    `;
+  }
+
   content.innerHTML = `
         <div class="request-details">
             <div class="detail-section">
@@ -525,31 +859,32 @@ function displayRequestDetails(request) {
                     <div class="detail-item">
                         <label>Status:</label>
                         <span class="badge badge-${getStatusBadgeClass(
-    request.status
-  )}">${request.status.toUpperCase()}</span>
+                          request.status
+                        )}">${request.status.toUpperCase()}</span>
                     </div>
                     <div class="detail-item">
                         <label>Request Date:</label>
                         <span>${formatDate(
-    request.request_date,
-    "DD/MM/YYYY HH:mm"
-  )}</span>
+                          request.request_date,
+                          "DD/MM/YYYY HH:mm"
+                        )}</span>
                     </div>
-                    ${request.approved_date
-      ? `
+                    ${
+                      request.approved_date
+                        ? `
                     <div class="detail-item">
                         <label>Approved Date:</label>
                         <span>${formatDate(
-        request.approved_date,
-        "DD/MM/YYYY HH:mm"
-      )}</span>
+                          request.approved_date,
+                          "DD/MM/YYYY HH:mm"
+                        )}</span>
                     </div>
                     `
-      : ""
-    }
+                        : ""
+                    }
                 </div>
             </div>
-            
+
             <div class="detail-section">
                 <h4>Requester Information</h4>
                 <div class="detail-grid">
@@ -567,61 +902,63 @@ function displayRequestDetails(request) {
                     </div>
                 </div>
             </div>
-            
+
             <div class="detail-section">
-                <h4>Item Information</h4>
+                <h4>Requested Items</h4>
+                <div class="request-items">
+                    ${itemsHtml}
+                </div>
+            </div>
+
+            <div class="detail-section">
+                <h4>Borrow Period</h4>
                 <div class="detail-grid">
                     <div class="detail-item">
-                        <label>Item:</label>
-                        <span>${request.item_name}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Quantity:</label>
-                        <span>${request.quantity}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>Borrow Period:</label>
+                        <label>Period:</label>
                         <span>
-                            ${request.borrow_start_date &&
-      request.borrow_end_date
-      ? `${formatDate(
-        request.borrow_start_date
-      )} to ${formatDate(request.borrow_end_date)}`
-      : request.expected_return_date
-        ? `Expected Return: ${formatDate(
-          request.expected_return_date
-        )}`
-        : "Not specified"
-    }
+                            ${
+                              request.borrow_start_date &&
+                              request.borrow_end_date
+                                ? `${formatDate(
+                                    request.borrow_start_date
+                                  )} to ${formatDate(request.borrow_end_date)}`
+                                : request.expected_return_date
+                                ? `Expected Return: ${formatDate(
+                                    request.expected_return_date
+                                  )}`
+                                : "Not specified"
+                            }
                         </span>
                     </div>
                 </div>
             </div>
-            
+
             <div class="detail-section">
                 <h4>Reason for Borrowing</h4>
                 <p>${request.reason}</p>
             </div>
-            
-            ${request.notes
-      ? `
+
+            ${
+              request.notes
+                ? `
             <div class="detail-section">
                 <h4>Notes</h4>
                 <p>${request.notes}</p>
             </div>
             `
-      : ""
-    }
-            
-            ${request.approved_by_name
-      ? `
+                : ""
+            }
+
+            ${
+              request.approved_by_name
+                ? `
             <div class="detail-section">
                 <h4>Approved By</h4>
                 <p>${request.approved_by_name}</p>
             </div>
             `
-      : ""
-    }
+                : ""
+            }
         </div>
     `;
 }
@@ -676,8 +1013,9 @@ function showApprovalModal(requestId, action) {
 
   document.getElementById("approval-title").textContent = title;
   submitBtn.textContent = action === "approve" ? "Approve" : "Reject";
-  submitBtn.className = `btn ${action === "approve" ? "btn-success" : "btn-danger"
-    }`;
+  submitBtn.className = `btn ${
+    action === "approve" ? "btn-success" : "btn-danger"
+  }`;
 
   showModal("approval-modal");
 }
@@ -903,8 +1241,9 @@ function updateAvailableQuantities() {
   const quantityBadges = document.querySelectorAll(".quantity-badge");
   quantityBadges.forEach((badge) => {
     const quantity = parseInt(badge.textContent);
-    badge.className = `quantity-badge ${quantity > 0 ? "available" : "unavailable"
-      }`;
+    badge.className = `quantity-badge ${
+      quantity > 0 ? "available" : "unavailable"
+    }`;
   });
 }
 

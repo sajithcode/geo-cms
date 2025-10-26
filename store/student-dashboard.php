@@ -13,21 +13,28 @@ if (!in_array($user_role, ['student', 'lecturer'])) {
     redirectTo('index.php');
 }
 
-// Get user's borrow requests
-try {
-    $stmt = $pdo->prepare("
-        SELECT br.*, ii.name as item_name, ii.description as item_description, ii.image_path,
-               u.name as approved_by_name
-        FROM borrow_requests br
-        JOIN store_items ii ON br.item_id = ii.id
-        LEFT JOIN users u ON br.approved_by = u.id
-        WHERE br.user_id = ?
-        ORDER BY br.request_date DESC
-    ");
-    $stmt->execute([$user_id]);
-    $my_requests = $stmt->fetchAll();
-    
-    // Get request statistics
+    // Get user's borrow requests
+    try {
+        $stmt = $pdo->prepare("
+            SELECT br.*,
+                   GROUP_CONCAT(
+                       CONCAT(ii.name, ' (x', bri.quantity, ')')
+                       ORDER BY ii.name SEPARATOR ', '
+                   ) as item_names,
+                   GROUP_CONCAT(ii.image_path SEPARATOR ',') as image_paths,
+                   GROUP_CONCAT(ii.description SEPARATOR ' | ') as item_descriptions,
+                   SUM(bri.quantity) as total_quantity,
+                   u.name as approved_by_name
+            FROM borrow_requests br
+            JOIN borrow_request_items bri ON br.id = bri.borrow_request_id
+            JOIN store_items ii ON bri.item_id = ii.id
+            LEFT JOIN users u ON br.approved_by = u.id
+            WHERE br.user_id = ?
+            GROUP BY br.id
+            ORDER BY br.request_date DESC
+        ");
+        $stmt->execute([$user_id]);
+        $my_requests = $stmt->fetchAll();    // Get request statistics
     $stmt = $pdo->prepare("
         SELECT 
             COUNT(*) as total_requests,
@@ -280,27 +287,34 @@ try {
                                     <?php foreach ($my_requests as $request): ?>
                                         <tr data-status="<?php echo $request['status']; ?>">
                                             <td class="image-column">
-                                                <?php if ($request['image_path']): ?>
+                                                <?php
+                                                $image_paths = explode(',', $request['image_paths']);
+                                                $first_image = $image_paths[0] ?? '';
+                                                ?>
+                                                <?php if ($first_image): ?>
                                                     <div class="item-image-container">
-                                                        <img src="../<?php echo htmlspecialchars($request['image_path']); ?>" 
-                                                             alt="<?php echo htmlspecialchars($request['item_name']); ?>"
+                                                        <img src="../<?php echo htmlspecialchars($first_image); ?>"
+                                                             alt="Items"
                                                              class="item-table-image clickable-image"
-                                                             onclick="showImagePreview('../<?php echo htmlspecialchars($request['image_path']); ?>', '<?php echo htmlspecialchars($request['item_name']); ?>')"
-                                                             onerror="this.parentElement.innerHTML='<span class=&quot;no-image&quot;>📷</span>'">
+                                                             onclick="showImagePreview('../<?php echo htmlspecialchars($first_image); ?>', 'Request Items')"
+                                                             onerror="this.parentElement.innerHTML='<span class=&quot;no-image&quot;>�</span>'">
+                                                        <?php if (count($image_paths) > 1): ?>
+                                                            <span class="badge badge-info" style="position: absolute; top: -5px; right: -5px;">+<?php echo count($image_paths) - 1; ?></span>
+                                                        <?php endif; ?>
                                                     </div>
                                                 <?php else: ?>
-                                                    <span class="no-image">📷</span>
+                                                    <span class="no-image">�</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
                                                 <div class="item-info">
-                                                    <strong><?php echo htmlspecialchars($request['item_name']); ?></strong>
-                                                    <?php if ($request['item_description']): ?>
-                                                        <small class="text-muted"><?php echo htmlspecialchars($request['item_description']); ?></small>
+                                                    <strong><?php echo htmlspecialchars($request['item_names']); ?></strong>
+                                                    <?php if ($request['item_descriptions']): ?>
+                                                        <small class="text-muted"><?php echo htmlspecialchars(substr($request['item_descriptions'], 0, 100)) . (strlen($request['item_descriptions']) > 100 ? '...' : ''); ?></small>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
-                                            <td><?php echo $request['quantity']; ?></td>
+                                            <td><?php echo $request['total_quantity']; ?></td>
                                             <td><?php echo htmlspecialchars($request['reason'] ?? '-'); ?></td>
                                             <td>
                                                 <?php if ($request['borrow_start_date'] && $request['borrow_end_date']): ?>
@@ -355,62 +369,71 @@ try {
             <form id="borrow-request-form">
                 <div class="modal-body">
                     <input type="hidden" name="csrf_token" value="<?php echo generateCSRFToken(); ?>">
-                    
+
+                    <!-- Items Section -->
                     <div class="form-group">
-                        <label for="item_id" class="form-label">Select Item *</label>
-                        <select id="item_id" name="item_id" class="form-control form-select" required>
-                            <option value="">Choose an item to borrow</option>
-                            <?php foreach ($available_items as $item): ?>
-                                <option value="<?php echo $item['id']; ?>" 
-                                        data-available="<?php echo $item['quantity_available']; ?>"
-                                        data-description="<?php echo htmlspecialchars($item['description']); ?>"
-                                        data-image="<?php echo htmlspecialchars($item['image_path'] ?? ''); ?>">
-                                    <?php echo htmlspecialchars($item['name']); ?> 
-                                    (Available: <?php echo $item['quantity_available']; ?>)
-                                    <?php if ($item['category_name']): ?>
-                                        - <?php echo htmlspecialchars($item['category_name']); ?>
-                                    <?php endif; ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div class="item-details" id="item-details" style="display: none;">
-                        <div class="alert alert-info">
-                            <div class="row">
-                                <div class="col-8">
-                                    <div class="item-info-text">
-                                        <strong>Item Description:</strong>
-                                        <p id="item-description"></p>
-                                        <strong>Available Quantity:</strong> <span id="available-quantity"></span>
+                        <label class="form-label">Items to Borrow *</label>
+                        <div id="items-container">
+                            <div class="item-request-row" data-row-id="1">
+                                <div class="row">
+                                    <div class="col-6">
+                                        <select name="items[1][item_id]" class="form-control form-select item-select" required>
+                                            <option value="">Choose an item</option>
+                                            <?php foreach ($available_items as $item): ?>
+                                                <option value="<?php echo $item['id']; ?>"
+                                                        data-available="<?php echo $item['quantity_available']; ?>"
+                                                        data-description="<?php echo htmlspecialchars($item['description']); ?>"
+                                                        data-image="<?php echo htmlspecialchars($item['image_path'] ?? ''); ?>">
+                                                    <?php echo htmlspecialchars($item['name']); ?>
+                                                    (Available: <?php echo $item['quantity_available']; ?>)
+                                                    <?php if ($item['category_name']): ?>
+                                                        - <?php echo htmlspecialchars($item['category_name']); ?>
+                                                    <?php endif; ?>
+                                                </option>
+                                            <?php endforeach; ?>
+                                        </select>
+                                    </div>
+                                    <div class="col-4">
+                                        <input type="number" name="items[1][quantity]" class="form-control item-quantity"
+                                               min="1" max="1" required placeholder="Qty">
+                                    </div>
+                                    <div class="col-2">
+                                        <button type="button" class="btn btn-danger btn-sm remove-item-btn" style="display: none;">
+                                            <i class="fa fa-trash"></i> Remove
+                                        </button>
                                     </div>
                                 </div>
-                                <div class="col-4">
-                                    <div id="item-image-preview" class="item-image-preview" style="display: none;">
-                                        <img id="selected-item-image" src="" alt="Item image" class="selected-item-image">
+                                <div class="item-details mt-2" style="display: none;">
+                                    <div class="alert alert-info">
+                                        <div class="row">
+                                            <div class="col-8">
+                                                <div class="item-info-text">
+                                                    <strong>Description:</strong>
+                                                    <p class="item-description"></p>
+                                                    <strong>Available:</strong> <span class="available-quantity"></span>
+                                                </div>
+                                            </div>
+                                            <div class="col-4">
+                                                <div class="item-image-preview" style="display: none;">
+                                                    <img class="selected-item-image" src="" alt="Item image" style="max-width: 100px;">
+                                                </div>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <div class="row">
-                        <div class="col-12">
-                            <div class="form-group">
-                                <label for="quantity" class="form-label">Quantity *</label>
-                                <input type="number" id="quantity" name="quantity" class="form-control" 
-                                       min="1" max="1" required placeholder="Enter quantity">
-                                <small class="form-text">Maximum available: <span id="max-quantity">-</span></small>
-                            </div>
-                        </div>
+                        <button type="button" id="add-item-btn" class="btn btn-outline-primary btn-sm mt-2">
+                            <i class="fa fa-plus"></i> Add Another Item
+                        </button>
                     </div>
 
                     <div class="row">
                         <div class="col-6">
                             <div class="form-group">
                                 <label for="borrow_start_date" class="form-label">Borrow Start Date *</label>
-                                <input type="date" id="borrow_start_date" name="borrow_start_date" 
-                                       class="form-control" required 
+                                <input type="date" id="borrow_start_date" name="borrow_start_date"
+                                       class="form-control" required
                                        min="<?php echo date('Y-m-d'); ?>">
                                 <small class="form-text">When you need to start using the equipment</small>
                             </div>
@@ -418,8 +441,8 @@ try {
                         <div class="col-6">
                             <div class="form-group">
                                 <label for="borrow_end_date" class="form-label">Borrow End Date *</label>
-                                <input type="date" id="borrow_end_date" name="borrow_end_date" 
-                                       class="form-control" required 
+                                <input type="date" id="borrow_end_date" name="borrow_end_date"
+                                       class="form-control" required
                                        min="<?php echo date('Y-m-d', strtotime('+1 day')); ?>">
                                 <small class="form-text">When you will return the equipment</small>
                             </div>

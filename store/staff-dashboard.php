@@ -17,14 +17,23 @@ $page_title = 'Store Management - Staff';
 // Get all borrow requests
 try {
     $stmt = $pdo->prepare("
-        SELECT br.*, ii.name as item_name, ii.description as item_description, ii.image_path,
+        SELECT br.*,
+               GROUP_CONCAT(
+                   CONCAT(ii.name, ' (x', bri.quantity, ')')
+                   ORDER BY ii.name SEPARATOR ', '
+               ) as item_names,
+               GROUP_CONCAT(ii.image_path SEPARATOR ',') as image_paths,
+               GROUP_CONCAT(ii.description SEPARATOR ' | ') as item_descriptions,
+               SUM(bri.quantity) as total_quantity,
                u.name as requester_name, u.user_id as requester_id, u.email as requester_email,
                approver.name as approved_by_name
         FROM borrow_requests br
-        JOIN store_items ii ON br.item_id = ii.id
+        JOIN borrow_request_items bri ON br.id = bri.borrow_request_id
+        JOIN store_items ii ON bri.item_id = ii.id
         JOIN users u ON br.user_id = u.id
         LEFT JOIN users approver ON br.approved_by = approver.id
-        ORDER BY 
+        GROUP BY br.id
+        ORDER BY
             CASE WHEN br.status = 'pending' THEN 1 ELSE 2 END,
             br.request_date DESC
     ");
@@ -307,7 +316,7 @@ try {
                                     </tr>
                                 <?php else: ?>
                                     <?php foreach ($all_requests as $request): ?>
-                                        <tr data-status="<?php echo $request['status']; ?>" data-item="<?php echo htmlspecialchars($request['item_name']); ?>">
+                                        <tr data-status="<?php echo $request['status']; ?>" data-item="<?php echo htmlspecialchars($request['item_names']); ?>">
                                             <td>
                                                 <div class="requester-info">
                                                     <strong><?php echo htmlspecialchars($request['requester_name']); ?></strong>
@@ -315,27 +324,34 @@ try {
                                                 </div>
                                             </td>
                                             <td class="image-column">
-                                                <?php if ($request['image_path']): ?>
+                                                <?php
+                                                $image_paths = explode(',', $request['image_paths']);
+                                                $first_image = $image_paths[0] ?? '';
+                                                ?>
+                                                <?php if ($first_image): ?>
                                                     <div class="item-image-container">
-                                                        <img src="../<?php echo htmlspecialchars($request['image_path']); ?>" 
-                                                             alt="<?php echo htmlspecialchars($request['item_name']); ?>"
+                                                        <img src="../<?php echo htmlspecialchars($first_image); ?>"
+                                                             alt="Items"
                                                              class="item-table-image clickable-image"
-                                                             onclick="showImagePreview('../<?php echo htmlspecialchars($request['image_path']); ?>', '<?php echo htmlspecialchars($request['item_name']); ?>')"
+                                                             onclick="showImagePreview('../<?php echo htmlspecialchars($first_image); ?>', 'Request Items')"
                                                              onerror="this.parentElement.innerHTML='<span class=&quot;no-image&quot;>📷</span>'">
+                                                        <?php if (count($image_paths) > 1): ?>
+                                                            <span class="badge badge-info" style="position: absolute; top: -5px; right: -5px;">+<?php echo count($image_paths) - 1; ?></span>
+                                                        <?php endif; ?>
                                                     </div>
                                                 <?php else: ?>
-                                                    <span class="no-image">📷</span>
+                                                    <span class="no-image">�</span>
                                                 <?php endif; ?>
                                             </td>
                                             <td>
                                                 <div class="item-info">
-                                                    <strong><?php echo htmlspecialchars($request['item_name']); ?></strong>
-                                                    <?php if ($request['item_description']): ?>
-                                                        <small class="text-muted"><?php echo htmlspecialchars($request['item_description']); ?></small>
+                                                    <strong><?php echo htmlspecialchars($request['item_names']); ?></strong>
+                                                    <?php if ($request['item_descriptions']): ?>
+                                                        <small class="text-muted"><?php echo htmlspecialchars(substr($request['item_descriptions'], 0, 100)) . (strlen($request['item_descriptions']) > 100 ? '...' : ''); ?></small>
                                                     <?php endif; ?>
                                                 </div>
                                             </td>
-                                            <td><?php echo $request['quantity']; ?></td>
+                                            <td><?php echo $request['total_quantity']; ?></td>
                                             <td>
                                                 <div class="reason-text" title="<?php echo htmlspecialchars($request['reason']); ?>">
                                                     <?php echo strlen($request['reason']) > 50 ? substr(htmlspecialchars($request['reason']), 0, 50) . '...' : htmlspecialchars($request['reason']); ?>

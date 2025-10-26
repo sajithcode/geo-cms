@@ -38,11 +38,20 @@ try {
     
     // Get request details
     $stmt = $pdo->prepare("
-        SELECT br.*, i.name as item_name, i.quantity_available, u.name as requester_name
+        SELECT br.*,
+               GROUP_CONCAT(
+                   CONCAT(i.name, ' (x', bri.quantity, ')')
+                   ORDER BY i.name SEPARATOR ', '
+               ) as item_names,
+               GROUP_CONCAT(bri.quantity) as quantities,
+               GROUP_CONCAT(bri.item_id) as item_ids,
+               u.name as requester_name
         FROM borrow_requests br
-        JOIN store_items i ON br.item_id = i.id
+        JOIN borrow_request_items bri ON br.id = bri.borrow_request_id
+        JOIN store_items i ON bri.item_id = i.id
         JOIN users u ON br.user_id = u.id
         WHERE br.id = ?
+        GROUP BY br.id
     ");
     $stmt->execute([$request_id]);
     $request = $stmt->fetch();
@@ -74,10 +83,21 @@ try {
             exit;
         }
         
-        // Check quantity availability for approval
-        if ($action === 'approve' && $request['quantity_available'] < $request['quantity']) {
-            echo json_encode(['success' => false, 'message' => 'Insufficient quantity available']);
-            exit;
+        // Check quantity availability for approval (multiple items)
+        if ($action === 'approve') {
+            $item_ids = explode(',', $request['item_ids']);
+            $quantities = explode(',', $request['quantities']);
+
+            for ($i = 0; $i < count($item_ids); $i++) {
+                $stmt = $pdo->prepare("SELECT quantity_available FROM store_items WHERE id = ?");
+                $stmt->execute([$item_ids[$i]]);
+                $item = $stmt->fetch();
+
+                if (!$item || $item['quantity_available'] < $quantities[$i]) {
+                    echo json_encode(['success' => false, 'message' => 'Insufficient quantity available for one or more items']);
+                    exit;
+                }
+            }
         }
     } elseif ($action === 'return') {
         // Only staff and admin can mark as returned
@@ -103,15 +123,20 @@ try {
             $new_status = 'approved';
             $approved_by = $user_id;
             $approved_date = date('Y-m-d H:i:s');
-            
-            // Update item quantities
-            $stmt = $pdo->prepare("
-                UPDATE store_items 
-                SET quantity_available = quantity_available - ?,
-                    quantity_borrowed = quantity_borrowed + ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$request['quantity'], $request['quantity'], $request['item_id']]);
+
+            // Update item quantities for all items
+            $item_ids = explode(',', $request['item_ids']);
+            $quantities = explode(',', $request['quantities']);
+
+            for ($i = 0; $i < count($item_ids); $i++) {
+                $stmt = $pdo->prepare("
+                    UPDATE store_items
+                    SET quantity_available = quantity_available - ?,
+                        quantity_borrowed = quantity_borrowed + ?
+                    WHERE id = ?
+                ");
+                $stmt->execute([$quantities[$i], $quantities[$i], $item_ids[$i]]);
+            }
             
         } elseif ($action === 'reject') {
             $new_status = 'rejected';
@@ -123,26 +148,31 @@ try {
             
         } elseif ($action === 'return') {
             $new_status = 'returned';
-            
-            // Update item quantities
-            $stmt = $pdo->prepare("
-                UPDATE store_items 
-                SET quantity_available = quantity_available + ?,
-                    quantity_borrowed = quantity_borrowed - ?
-                WHERE id = ?
-            ");
-            $stmt->execute([$request['quantity'], $request['quantity'], $request['item_id']]);
-            
-            // Check if item condition affects maintenance count
-            $condition = $_POST['condition'] ?? 'Good';
-            if (in_array($condition, ['Damaged', 'Needs Repair'])) {
+
+            // Update item quantities for all items
+            $item_ids = explode(',', $request['item_ids']);
+            $quantities = explode(',', $request['quantities']);
+
+            for ($i = 0; $i < count($item_ids); $i++) {
                 $stmt = $pdo->prepare("
-                    UPDATE store_items 
-                    SET quantity_available = quantity_available - ?,
-                        quantity_maintenance = quantity_maintenance + ?
+                    UPDATE store_items
+                    SET quantity_available = quantity_available + ?,
+                        quantity_borrowed = quantity_borrowed - ?
                     WHERE id = ?
                 ");
-                $stmt->execute([$request['quantity'], $request['quantity'], $request['item_id']]);
+                $stmt->execute([$quantities[$i], $quantities[$i], $item_ids[$i]]);
+
+                // Check if item condition affects maintenance count
+                $condition = $_POST['condition'] ?? 'Good';
+                if (in_array($condition, ['Damaged', 'Needs Repair'])) {
+                    $stmt = $pdo->prepare("
+                        UPDATE store_items
+                        SET quantity_available = quantity_available - ?,
+                            quantity_maintenance = quantity_maintenance + ?
+                        WHERE id = ?
+                    ");
+                    $stmt->execute([$quantities[$i], $quantities[$i], $item_ids[$i]]);
+                }
             }
         }
         
@@ -163,9 +193,9 @@ try {
         $details = json_encode([
             'request_id' => $request_id,
             'action' => $action,
-            'item_name' => $request['item_name'],
+            'items' => $request['item_names'],
             'requester' => $request['requester_name'],
-            'quantity' => $request['quantity']
+            'total_quantity' => array_sum(explode(',', $request['quantities']))
         ]);
         $stmt->execute([$user_id, "request_$action", $details]);
         

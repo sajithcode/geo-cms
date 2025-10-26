@@ -45,10 +45,19 @@ try {
     
     // Recent activity
     $stmt = $pdo->prepare("
-        SELECT br.*, ii.name as item_name, ii.image_path, u.name as requester_name
+        SELECT br.*,
+               GROUP_CONCAT(
+                   CONCAT(ii.name, ' (x', bri.quantity, ')')
+                   ORDER BY ii.name SEPARATOR ', '
+               ) as item_names,
+               GROUP_CONCAT(ii.image_path SEPARATOR ',') as image_paths,
+               SUM(bri.quantity) as total_quantity,
+               u.name as requester_name
         FROM borrow_requests br
-        JOIN store_items ii ON br.item_id = ii.id
+        JOIN borrow_request_items bri ON br.id = bri.borrow_request_id
+        JOIN store_items ii ON bri.item_id = ii.id
         JOIN users u ON br.user_id = u.id
+        GROUP BY br.id
         ORDER BY br.request_date DESC
         LIMIT 10
     ");
@@ -343,11 +352,15 @@ try {
                             <?php foreach (array_slice($recent_requests, 0, 5) as $request): ?>
                                 <div class="activity-item">
                                     <div class="activity-icon">
-                                        <?php if ($request['image_path']): ?>
-                                            <img src="../<?php echo htmlspecialchars($request['image_path']); ?>" 
-                                                 alt="<?php echo htmlspecialchars($request['item_name']); ?>"
+                                        <?php
+                                        $image_paths = explode(',', $request['image_paths']);
+                                        $first_image = $image_paths[0] ?? '';
+                                        ?>
+                                        <?php if ($first_image): ?>
+                                            <img src="../<?php echo htmlspecialchars($first_image); ?>"
+                                                 alt="Items"
                                                  class="activity-item-image clickable-image"
-                                                 onclick="showImagePreview('../<?php echo htmlspecialchars($request['image_path']); ?>', '<?php echo htmlspecialchars($request['item_name']); ?>')"
+                                                 onclick="showImagePreview('../<?php echo htmlspecialchars($first_image); ?>', 'Request Items')"
                                                  onerror="this.style.display='none'; this.nextElementSibling.style.display='inline';">
                                             <span class="badge badge-<?php echo getStatusBadgeClass($request['status']); ?>" style="display: none;">
                                                 <?php echo strtoupper(substr($request['status'], 0, 1)); ?>
@@ -362,8 +375,8 @@ try {
                                         <p>
                                             <strong><?php echo htmlspecialchars($request['requester_name']); ?></strong>
                                             requested to borrow
-                                            <strong><?php echo htmlspecialchars($request['item_name']); ?></strong>
-                                            (Qty: <?php echo $request['quantity']; ?>)
+                                            <strong><?php echo htmlspecialchars($request['item_names']); ?></strong>
+                                            (Total Qty: <?php echo $request['total_quantity']; ?>)
                                         </p>
                                         <small class="text-muted">
                                             <?php echo formatDate($request['request_date'], 'DD/MM/YYYY HH:mm'); ?>
