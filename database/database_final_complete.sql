@@ -266,17 +266,6 @@ CREATE INDEX IF NOT EXISTS idx_computers_serial ON computers(serial_no);
 -- SAMPLE DATA INSERTION
 -- =====================================================
 
--- Insert default users (passwords are hashed 'password')
-INSERT INTO users (name, email, user_id, password, role) VALUES
-('System Administrator', 'admin@sab.ac.lk', 'ADMIN001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'admin'),
-('Dr. John Smith', 'john.smith@sab.ac.lk', 'LEC001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'lecturer'),
-('Dr. Sarah Johnson', 'sarah.johnson@sab.ac.lk', 'LEC002', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'lecturer'),
-('Jane Staff', 'jane.staff@sab.ac.lk', 'STAFF001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'staff'),
-('Mike Staff', 'mike.staff@sab.ac.lk', 'STAFF002', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'staff'),
-('Alice Student', 'alice.student@sab.ac.lk', 'STU001', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student'),
-('Bob Student', 'bob.student@sab.ac.lk', 'STU002', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student'),
-('Charlie Student', 'charlie.student@sab.ac.lk', 'STU003', '$2y$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'student')
-ON DUPLICATE KEY UPDATE name = VALUES(name), email = VALUES(email);
 
 -- Insert store categories
 INSERT INTO store_categories (name, description) VALUES
@@ -445,12 +434,6 @@ This database_final.sql file contains:
 4. Performance indexes
 5. Foreign key constraints
 
-DEFAULT LOGIN CREDENTIALS:
-- Admin: admin@sab.ac.lk / password
-- Lecturer: john.smith@sab.ac.lk / password
-- Staff: jane.staff@sab.ac.lk / password
-- Student: alice.student@sab.ac.lk / password
-
 To use this file:
 1. Create a new MySQL database named 'geo_cms'
 2. Run this SQL file in phpMyAdmin or MySQL command line
@@ -465,6 +448,4 @@ The database includes:
 - Notification system
 - Activity logging
 
-All passwords are hashed using bcrypt.
-Default password for all users: 'password'
 */
